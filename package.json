@@ -1,0 +1,20 @@
+{
+  "name": "qianfo",
+  "version": "1.0.0",
+  "description": "预约管理系统 Monorepo",
+  "private": true,
+  "scripts": {
+    "dev:h5": "pnpm --filter h5 dev",
+    "dev:web": "pnpm --filter web dev",
+    "build:h5": "pnpm --filter h5 build",
+    "build:web": "pnpm --filter web build",
+    "build": "pnpm --filter @qianfo/shared build || true && pnpm --filter h5 build && pnpm --filter web build"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "vue-demi"]
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.1"
+}
