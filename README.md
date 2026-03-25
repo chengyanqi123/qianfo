@@ -1,6 +1,7 @@
 # 千佛预约管理系统
 
-基于 pnpm Monorepo 的预约管理系统，包含手机端 H5 预约页和 PC 端后台管理系统。 [API][api-link]
+基于 pnpm Monorepo 的预约管理系统，包含手机端 H5 预约页和 PC 端后台管理系统。
+
 **Create by [Claude Code](https://claude.ai/code).**
 
 ## 项目结构
@@ -138,6 +139,8 @@ VITE_MOCK=true
 ```
 
 ### 主要接口
+
+详见[API][api-link]
 
 #### 认证
 
