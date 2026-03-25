@@ -100,11 +100,26 @@ async function onSubmit() {
 }
 
 .login-card {
-  width: 400px;
+  width: min(400px, calc(100vw - 32px));
   background: var(--el-bg-color);
   border-radius: 16px;
   padding: 40px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 28px 20px;
+    border-radius: 12px;
+  }
+
+  .login-logo {
+    font-size: 40px !important;
+  }
+
+  .login-title {
+    font-size: 18px !important;
+  }
 }
 
 .login-header {

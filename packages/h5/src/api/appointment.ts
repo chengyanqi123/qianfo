@@ -76,3 +76,14 @@ export async function getAppointmentHistory(
   const res = await request.get('/appointments/history', { params: { page, pageSize } })
   return res.data
 }
+
+/** 取消预约 */
+export async function cancelAppointment(id: number): Promise<void> {
+  if (isMock) {
+    await new Promise((r) => setTimeout(r, 400))
+    const item = MOCK_HISTORY.find((a) => a.id === id)
+    if (item) item.status = 'cancelled'
+    return
+  }
+  await request.patch(`/appointments/${id}/status`, { status: 'cancelled' })
+}

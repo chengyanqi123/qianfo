@@ -4,6 +4,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  base: '/web/',
   plugins: [
     vue(),
     AutoImport({

@@ -5,6 +5,7 @@ import { VantResolver } from 'unplugin-vue-components/resolvers'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  base: '/h5/',
   plugins: [
     vue(),
     Components({

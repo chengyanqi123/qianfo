@@ -30,6 +30,17 @@
             </div>
             <div class="card-footer">
               <span class="created-at">提交于 {{ formatTime(item.createdAt) }}</span>
+              <van-button
+                v-if="item.status === 'pending'"
+                size="small"
+                type="danger"
+                plain
+                round
+                :loading="cancellingId === item.id"
+                @click="onCancel(item)"
+              >
+                取消预约
+              </van-button>
             </div>
           </div>
         </div>
@@ -47,8 +58,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { showFailToast } from 'vant'
-import { getAppointmentHistory } from '@/api/appointment'
+import { showFailToast, showSuccessToast, showConfirmDialog } from 'vant'
+import { getAppointmentHistory, cancelAppointment } from '@/api/appointment'
 import type { Appointment, AppointmentStatus } from '@qianfo/shared'
 
 const list = ref<Appointment[]>([])
@@ -58,6 +69,7 @@ const page = ref(1)
 const pageSize = 10
 const total = ref(0)
 const noMore = ref(false)
+const cancellingId = ref<number | null>(null)
 
 const statusText = (status: AppointmentStatus) => {
   const map: Record<AppointmentStatus, string> = {
@@ -113,6 +125,30 @@ function loadMore() {
 }
 
 onMounted(() => fetchList(true))
+
+async function onCancel(item: Appointment) {
+  try {
+    await showConfirmDialog({
+      title: '取消预约',
+      message: `确认取消 ${item.date} ${item.time} 的预约吗？`,
+      confirmButtonText: '确认取消',
+      cancelButtonText: '再想想',
+      confirmButtonColor: '#ee0a24',
+    })
+  } catch {
+    return // 用户点击"再想想"
+  }
+  cancellingId.value = item.id
+  try {
+    await cancelAppointment(item.id)
+    item.status = 'cancelled'
+    showSuccessToast('预约已取消')
+  } catch (e: any) {
+    showFailToast(e.message || '取消失败，请重试')
+  } finally {
+    cancellingId.value = null
+  }
+}
 </script>
 
 <style scoped>
@@ -160,6 +196,9 @@ onMounted(() => fetchList(true))
   margin-top: 12px;
   border-top: 1px solid #f5f5f5;
   padding-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .created-at {

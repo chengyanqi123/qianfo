@@ -102,7 +102,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { showSuccessToast, showFailToast, type FormInstance } from 'vant'
+import { showSuccessToast, showFailToast, type FormInstance, type PickerOption } from 'vant'
 import { useWechat } from '@/composables/useWechat'
 import { useUserStore } from '@/stores/user'
 import { submitAppointment } from '@/api/appointment'
@@ -147,7 +147,7 @@ function onTimeConfirm({ selectedValues }: { selectedValues: string[] }) {
 }
 
 // 只允许整点和半点
-function timeFilter(type: string, options: { value: string }[]) {
+function timeFilter(type: string, options: PickerOption[]) {
   if (type === 'minute') {
     return options.filter((o) => o.value === '00' || o.value === '30')
   }

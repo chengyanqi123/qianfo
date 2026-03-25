@@ -1,25 +1,25 @@
 <template>
   <div class="topbar-inner">
-    <!-- 左侧：折叠按钮 + 面包屑 -->
+    <!-- 左侧：折叠/汉堡按钮 + 面包屑 -->
     <div class="topbar-left">
       <el-button text :icon="collapsed ? Expand : Fold" @click="$emit('toggle')" />
-      <el-breadcrumb separator="/">
+      <el-breadcrumb v-if="!isMobile" separator="/">
         <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
         <el-breadcrumb-item v-if="currentTitle">{{ currentTitle }}</el-breadcrumb-item>
       </el-breadcrumb>
+      <!-- 移动端显示当前页面标题 -->
+      <span v-if="isMobile && currentTitle" class="mobile-title">{{ currentTitle }}</span>
     </div>
 
     <!-- 右侧：主题切换 + 用户信息 -->
     <div class="topbar-right">
-      <el-tooltip :content="isDark ? '切换亮色' : '切换暗色'" placement="bottom">
-        <el-button text :icon="isDark ? Sunny : Moon" @click="toggleTheme" />
-      </el-tooltip>
+      <el-button text :icon="isDark ? Sunny : Moon" @click="toggleTheme" />
 
       <el-dropdown @command="handleCommand">
         <div class="user-info">
           <el-avatar :size="32" :icon="UserFilled" />
-          <span class="username">{{ auth.user?.username ?? 'Admin' }}</span>
-          <el-icon><ArrowDown /></el-icon>
+          <span v-if="!isMobile" class="username">{{ auth.user?.username ?? 'Admin' }}</span>
+          <el-icon v-if="!isMobile"><ArrowDown /></el-icon>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -39,7 +39,7 @@ import { ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
 
-defineProps<{ collapsed: boolean }>()
+defineProps<{ collapsed: boolean; isMobile: boolean }>()
 defineEmits<{ (e: 'toggle'): void }>()
 
 const auth = useAuthStore()
@@ -76,12 +76,14 @@ async function handleCommand(cmd: string) {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .user-info {
@@ -100,5 +102,14 @@ async function handleCommand(cmd: string) {
 .username {
   font-size: 14px;
   color: var(--el-text-color-primary);
+}
+
+.mobile-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

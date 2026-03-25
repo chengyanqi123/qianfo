@@ -24,3 +24,43 @@ body,
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ==================== 移动端全局适配 ==================== */
+@media (max-width: 768px) {
+  /* el-main 内边距收窄 */
+  .el-main {
+    padding: 12px !important;
+  }
+
+  /* 统计卡片紧凑化 */
+  .stat-card {
+    padding: 14px 12px !important;
+    gap: 12px !important;
+  }
+
+  .stat-icon {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .stat-value {
+    font-size: 22px !important;
+  }
+
+  /* el-card 内边距收窄 */
+  .el-card__body {
+    padding: 12px !important;
+  }
+
+  /* 分页器在小屏下允许换行 */
+  .el-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* 日期范围选择器强制全宽 */
+  .el-date-editor.el-input__wrapper,
+  .el-date-editor--daterange {
+    width: 100% !important;
+  }
+}

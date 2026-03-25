@@ -4,6 +4,7 @@
     :default-active="$route.path"
     router
     class="sidebar-menu"
+    @select="$emit('nav')"
   >
     <div class="logo-area">
       <el-icon class="logo-icon"><Calendar /></el-icon>
@@ -29,6 +30,7 @@
 
 <script setup lang="ts">
 defineProps<{ collapsed: boolean }>()
+defineEmits<{ (e: 'nav'): void }>()
 </script>
 
 <style scoped>
