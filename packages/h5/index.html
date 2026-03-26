@@ -1,14 +1,21 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>预约服务</title>
-    <!-- 微信 JS-SDK（通过 CDN 引入，在微信浏览器中生效） -->
-    <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>预约服务</title>
+  <script src="http://res.wx.qq.com/open/js/jweixin-1.6.01.js"></script>
+  <script>
+    if (!window.wx || typeof window.wx !== 'object') {
+      document.write('<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"><\/script>');
+    }
+  </script>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
