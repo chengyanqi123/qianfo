@@ -12,7 +12,7 @@ const router = createRouter({
 })
 
 router.afterEach((to) => {
-  document.title = (to.meta.title as string) || '预约服务'
+  document.title = `千佛摆渡车 - ${to.meta.title}`
 })
 
 export default router

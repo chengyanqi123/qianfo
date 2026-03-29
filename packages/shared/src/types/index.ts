@@ -5,9 +5,9 @@ export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled'
 export interface Appointment {
   id: number
   userId: number
-  date: string          // 'YYYY-MM-DD'
-  time: string          // 'HH:mm'
-  count: number         // 人数
+  date: string // 'YYYY-MM-DD'
+  time: string // 'HH:mm'
+  count: number // 人数
   phone: string
   status: AppointmentStatus
   remark?: string
@@ -28,10 +28,20 @@ export type UserRole = 'admin' | 'user'
 
 export interface User {
   id: number
-  username: string
   role: UserRole
-  phone?: string
   createdAt: string
+  username?: string
+  phone?: string
+  // 微信相关
+  openid?: string
+  nickname?: string
+  sex?: number
+  province?: string
+  city?: string
+  country?: string
+  headimgurl?: string
+  privilege?: string[]
+  unionid?: string
 }
 
 export interface LoginDto {
@@ -56,6 +66,12 @@ export interface PageResult<T> {
   total: number
   page: number
   pageSize: number
+}
+
+export interface Result<T> {
+  code: number
+  message: string
+  data: T
 }
 
 // ========== Dashboard 统计 ==========

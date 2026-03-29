@@ -12,8 +12,9 @@ export const request = axios.create({
 request.interceptors.request.use((config) => {
   const auth = useAuthStore()
   if (auth.token) {
-    config.headers['Authorization'] = `Bearer ${auth.token}`
+    config.headers['Authorization'] = `${auth.token}`
   }
+  config.headers['x-range-valid'] = +new Date()
   return config
 })
 

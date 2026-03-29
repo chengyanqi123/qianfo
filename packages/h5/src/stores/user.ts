@@ -1,32 +1,40 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import type { User } from '@qianfo/shared'
+type UserInfo = { token: string; user: Partial<User> }
 
-export const useUserStore = defineStore('user', () => {
-  const user = ref({
-    phone: '',
-    openId: '',
-    token: '',
-  })
-
-  function setPhone(val: string) {
-    user.value.phone = val
-  }
-
-  function setOpenId(val: string) {
-    user.value.openId = val
-  }
-
-  function setToken(val: string) {
-    user.value.token = val
-  }
-
-  function clear() {
-    user.value = {
-      phone: '',
-      openId: '',
+export const useUserStore = defineStore(
+  'user',
+  () => {
+    const user = ref<UserInfo>({
       token: '',
-    }
-  }
+      user: {},
+    })
 
-  return { user, setPhone, setOpenId, setToken, clear }
-})
+    function setUserInfo(userInfo: UserInfo) {
+      user.value = userInfo
+    }
+
+    function getUserInfo() {
+      return user.value
+    }
+
+    function setToken(token: string) {
+      user.value.token = token
+    }
+
+    function getToken() {
+      return user.value.token
+    }
+
+    function clear() {
+      user.value = {
+        token: '',
+        user: {},
+      }
+    }
+
+    return { user, setUserInfo, getUserInfo, setToken, getToken, clear }
+  },
+  { persist: true },
+)

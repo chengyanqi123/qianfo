@@ -20,7 +20,7 @@ export async function getUsers(filter: UserFilter): Promise<PageResult<User>> {
   if (isMock) {
     await new Promise((r) => setTimeout(r, 400))
     let data = [...MOCK_USERS]
-    if (filter.username) data = data.filter((u) => u.username.includes(filter.username!))
+    if (filter.username) data = data.filter((u) => u.username?.includes(filter.username!))
     if (filter.phone) data = data.filter((u) => u.phone?.includes(filter.phone!))
     const start = (filter.page - 1) * filter.pageSize
     return {

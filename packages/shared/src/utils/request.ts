@@ -15,8 +15,11 @@ export interface ApiResponse<T = unknown> {
  * 创建一个 axios 实例，统一处理请求/响应拦截。
  * @param baseURL - API 基础地址
  * @param getToken - 获取 token 的函数（由各端自行实现）
+ * @param noAuthHandler - 处理未授权请求的函数（如跳转登录页）
+ * @returns - axios 实例
  */
-export function createRequest(baseURL: string, getToken: () => string | null): AxiosInstance {
+type NoAuthHandler = (response: AxiosResponse<ApiResponse>) => Promise<void> | void
+export function createRequest(baseURL: string, getToken: () => string | null, noAuthHandler?: NoAuthHandler): AxiosInstance {
   const instance = axios.create({
     baseURL,
     timeout: 10000,
@@ -28,21 +31,30 @@ export function createRequest(baseURL: string, getToken: () => string | null): A
     const token = getToken()
     if (token && !(config as RequestConfig).noAuth) {
       config.headers = config.headers ?? {}
-      config.headers['Authorization'] = `Bearer ${token}`
+      config.headers['Authorization'] = `${token}`
     }
+    config.headers['x-range-valid'] = +new Date()
     return config
   })
 
   // 响应拦截：统一解包 data，业务错误转为 reject
   instance.interceptors.response.use(
-    (response: AxiosResponse<ApiResponse>) => {
+    async (response: AxiosResponse<ApiResponse>) => {
       const res = response.data
+      if (res.code === 401) {
+        const stopper = await noAuthHandler?.(response)
+        if (stopper) return stopper
+      }
       if (res.code !== 0) {
         return Promise.reject(new Error(res.message ?? '请求失败'))
       }
       return res.data as any
     },
-    (error) => {
+    async (error) => {
+      if (error.response?.status === 401) {
+        const stopper = await noAuthHandler?.(error?.response)
+        if (stopper) return stopper
+      }
       const message = error.response?.data?.message ?? error.message ?? '网络错误'
       return Promise.reject(new Error(message))
     },

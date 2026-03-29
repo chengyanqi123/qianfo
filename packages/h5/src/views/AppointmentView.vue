@@ -43,9 +43,6 @@
       </van-form>
     </div>
 
-    <Overlay :show="wxLoading">
-      <van-loading />
-    </Overlay>
     <!-- 日期选择器 -->
     <van-popup v-model:show="showDatePicker" position="bottom" round>
       <van-date-picker v-model="datePickerValue" title="选择日期" :min-date="minDate" :max-date="maxDate" @confirm="onDateConfirm" @cancel="showDatePicker = false" />
@@ -59,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { showSuccessToast, showFailToast, Overlay, type FormInstance, type PickerOption } from 'vant'
 import { useWechat } from '@/composables/useWechat'
 import { useUserStore } from '@/stores/user'
@@ -67,7 +64,7 @@ import { submitAppointment } from '@/api/appointment'
 import type { CreateAppointmentDto } from '@qianfo/shared'
 
 const userStore = useUserStore()
-const { loading: wxLoading, getPhoneNumber, getOpenId } = useWechat()
+const { login: wxLogin } = useWechat()
 
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
@@ -83,20 +80,18 @@ const timePickerValue = ref<string[]>(['09', '00'])
 const form = reactive<CreateAppointmentDto & { remark?: string }>({
   date: '',
   time: '',
-  count: 2,
+  count: 1,
   phone: '',
   remark: '',
 })
 
-if (userStore.user.token) {
+if (userStore.getToken()) {
   // 已登录，直接验证使用token
 } else {
   // 未登录，获取用户ID换取token
-  getOpenId(import.meta.env.VITE_WX_APP_ID).then((openId) => {
-    if (!openId) {
-      return showFailToast('获取用户ID失败')
-    }
-    showSuccessToast('获取用户ID成功' + openId)
+  wxLogin().then((data) => {
+    // showSuccessToast('登录成功')
+    data && userStore.setUserInfo(data)
   })
 }
 
@@ -116,12 +111,6 @@ function timeFilter(type: string, options: PickerOption[]) {
     return options.filter((o) => o.value === '00' || o.value === '30')
   }
   return options
-}
-
-function handleGetPhone() {
-  getPhoneNumber((phone) => {
-    form.phone = phone
-  })
 }
 
 async function onSubmit() {
