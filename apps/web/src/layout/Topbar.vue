@@ -1,8 +1,13 @@
 <template>
-  <div class="topbar-inner">
+  <div class="topbar-inner" :class="{ 'topbar-inner-mobile': isMobile }">
     <!-- 左侧：折叠/汉堡按钮 + 面包屑 -->
     <div class="topbar-left">
-      <el-button text :icon="collapsed ? Expand : Fold" @click="$emit('toggle')" />
+      <el-button
+        text
+        :icon="collapsed ? Expand : Fold"
+        @click="$emit('toggle')"
+        :style="isMobile ? mobileButtonStyle : {}"
+      />
       <el-breadcrumb v-if="!isMobile" separator="/">
         <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
         <el-breadcrumb-item v-if="currentTitle">{{ currentTitle }}</el-breadcrumb-item>
@@ -13,7 +18,7 @@
 
     <!-- 右侧：主题切换 + 用户信息 -->
     <div class="topbar-right">
-      <el-button text :icon="isDark ? Sunny : Moon" @click="toggleTheme" />
+      <el-button text :icon="isDark ? Sunny : Moon" @click="toggleTheme" :style="isMobile ? mobileButtonStyle : {}" />
 
       <el-dropdown @command="handleCommand">
         <div class="user-info">
@@ -32,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, CSSProperties } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Expand, Fold, Sunny, Moon, UserFilled, SwitchButton, ArrowDown } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
@@ -48,6 +53,9 @@ const route = useRoute();
 const { isDark, toggleTheme } = useTheme();
 
 const currentTitle = computed(() => route.meta.title as string | undefined);
+const mobileButtonStyle: CSSProperties = {
+  padding: '6px',
+};
 
 async function handleCommand(cmd: string) {
   if (cmd === 'logout') {
@@ -70,6 +78,9 @@ async function handleCommand(cmd: string) {
   width: 100%;
   padding: 0 16px;
   height: 100%;
+}
+.topbar-inner-mobile {
+  padding: 0 8px;
 }
 
 .topbar-left {

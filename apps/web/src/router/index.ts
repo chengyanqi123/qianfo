@@ -29,7 +29,12 @@ const router = createRouter({
         {
           path: 'users',
           component: () => import('@/views/UserView.vue'),
-          meta: { title: '系统用户', icon: 'User' },
+          meta: { title: '用户管理', icon: 'User' },
+        },
+        {
+          path: 'settings',
+          component: () => import('@/views/SettingView.vue'),
+          meta: { title: '系统设置', icon: 'Setting' },
         },
       ],
     },

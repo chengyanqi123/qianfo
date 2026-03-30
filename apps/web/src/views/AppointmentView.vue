@@ -66,26 +66,63 @@
           <el-table-column prop="createdAt" label="提交时间" width="170">
             <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="160" fixed="right">
+          <el-table-column label="操作" :width="isMobile ? '56' : '160'" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button
-                v-if="row.status === 'pending'"
-                type="success"
-                size="small"
-                plain
-                @click="changeStatus(row, 'confirmed')"
-              >
-                确认
-              </el-button>
-              <el-button
-                v-if="row.status !== 'cancelled'"
-                type="danger"
-                size="small"
-                plain
-                @click="changeStatus(row, 'cancelled')"
-              >
-                取消
-              </el-button>
+              <template v-if="isMobile">
+                <el-dropdown placement="top-start">
+                  <div class="flex-center">
+                    <el-icon><MoreFilled /></el-icon>
+                  </div>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item>
+                        <el-button
+                          v-if="row.status === 'pending'"
+                          link
+                          type="primary"
+                          size="small"
+                          plain
+                          @click="changeStatus(row, 'confirmed')"
+                        >
+                          确认
+                        </el-button>
+                      </el-dropdown-item>
+                      <el-dropdown-item>
+                        <el-button
+                          v-if="row.status !== 'cancelled'"
+                          link
+                          type="danger"
+                          size="small"
+                          plain
+                          @click="changeStatus(row, 'cancelled')"
+                        >
+                          取消
+                        </el-button>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </template>
+              <template v-else>
+                <el-button
+                  v-if="row.status === 'pending'"
+                  type="success"
+                  size="small"
+                  plain
+                  @click="changeStatus(row, 'confirmed')"
+                >
+                  确认
+                </el-button>
+                <el-button
+                  v-if="row.status !== 'cancelled'"
+                  type="danger"
+                  size="small"
+                  plain
+                  @click="changeStatus(row, 'cancelled')"
+                >
+                  取消
+                </el-button>
+              </template>
             </template>
           </el-table-column>
         </el-table>
@@ -219,6 +256,12 @@ onMounted(fetchData);
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
