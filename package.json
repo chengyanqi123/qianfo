@@ -1,20 +1,32 @@
 {
   "name": "qianfo",
   "version": "1.0.0",
-  "description": "预约管理系统 Monorepo",
   "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "description": "千佛预约系统",
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
   "scripts": {
     "dev:h5": "pnpm --filter h5 dev",
     "dev:web": "pnpm --filter web dev",
     "build:h5": "pnpm --filter h5 build",
     "build:web": "pnpm --filter web build",
-    "build": "pnpm --filter @qianfo/shared build || true && pnpm --filter h5 build && pnpm --filter web build"
+    "build": "pnpm --filter @qianfo/shared build || true && pnpm --filter h5 build && pnpm --filter web build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "husky",
+    "check": "prettier --check .",
+    "format": "prettier --write ."
   },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "vue-demi"]
+  "devDependencies": {
+    "@antfu/eslint-config": "^7.7.3",
+    "eslint": "^10.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.12.1"
+  "lint-staged": {
+    "*.{js,ts,jsx,tsx,vue}": "eslint --fix"
+  }
 }

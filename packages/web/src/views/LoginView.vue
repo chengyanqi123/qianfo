@@ -7,21 +7,9 @@
         <p class="login-subtitle">请登录您的账号</p>
       </div>
 
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-position="top"
-        @submit.prevent="onSubmit"
-      >
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="onSubmit">
         <el-form-item label="账号" prop="username">
-          <el-input
-            v-model="form.username"
-            placeholder="请输入账号"
-            :prefix-icon="User"
-            size="large"
-            clearable
-          />
+          <el-input v-model="form.username" placeholder="请输入账号" :prefix-icon="User" size="large" clearable />
         </el-form-item>
         <el-form-item label="密码" prop="password">
           <el-input
@@ -34,15 +22,7 @@
             @keyup.enter="onSubmit"
           />
         </el-form-item>
-        <el-button
-          type="primary"
-          size="large"
-          :loading="loading"
-          class="login-btn"
-          @click="onSubmit"
-        >
-          登录
-        </el-button>
+        <el-button type="primary" size="large" :loading="loading" class="login-btn" @click="onSubmit"> 登录 </el-button>
       </el-form>
 
       <p class="hint">演示账号：admin / 123456</p>
@@ -51,41 +31,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import type { FormInstance, FormRules } from 'element-plus'
-import { ElMessage } from 'element-plus'
-import { User, Lock } from '@element-plus/icons-vue'
-import { useAuthStore } from '@/stores/auth'
-import { login } from '@/api/auth'
+import { ref, reactive } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import type { FormInstance, FormRules } from 'element-plus';
+import { ElMessage } from 'element-plus';
+import { User, Lock } from '@element-plus/icons-vue';
+import { useAuthStore } from '@/stores/auth';
+import { login } from '@/api/auth';
 
-const router = useRouter()
-const route = useRoute()
-const auth = useAuthStore()
+const router = useRouter();
+const route = useRoute();
+const auth = useAuthStore();
 
-const formRef = ref<FormInstance>()
-const loading = ref(false)
+const formRef = ref<FormInstance>();
+const loading = ref(false);
 
-const form = reactive({ username: '', password: '' })
+const form = reactive({ username: '', password: '' });
 
 const rules: FormRules = {
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-}
+};
 
 async function onSubmit() {
-  await formRef.value?.validate()
-  loading.value = true
+  await formRef.value?.validate();
+  loading.value = true;
   try {
-    const result = await login(form)
-    auth.setToken(result.token)
-    auth.setUser(result.user)
-    const redirect = (route.query.redirect as string) || '/'
-    router.replace(redirect)
+    const result = await login(form);
+    auth.setToken(result.token);
+    auth.setUser(result.user);
+    const redirect = (route.query.redirect as string) || '/';
+    router.replace(redirect);
   } catch (e: any) {
-    ElMessage.error(e.message || '登录失败')
+    ElMessage.error(e.message || '登录失败');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 </script>

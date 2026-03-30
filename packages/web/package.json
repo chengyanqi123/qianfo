@@ -1,16 +1,16 @@
 {
   "name": "web",
-  "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@qianfo/shared": "workspace:*",
     "@element-plus/icons-vue": "^2.3.0",
+    "@qianfo/shared": "workspace:*",
     "@vueuse/core": "^11.0.0",
     "axios": "^1.7.0",
     "echarts": "^5.5.0",

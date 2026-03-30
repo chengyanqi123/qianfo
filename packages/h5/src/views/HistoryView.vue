@@ -48,83 +48,81 @@
         <!-- 加载更多 -->
         <van-loading v-if="loading && list.length === 0" class="center-loading" />
         <van-divider v-if="noMore && list.length > 0">没有更多了</van-divider>
-        <div v-if="!noMore && list.length > 0" class="load-more" @click="loadMore">
-          加载更多
-        </div>
+        <div v-if="!noMore && list.length > 0" class="load-more" @click="loadMore">加载更多</div>
       </div>
     </van-pull-refresh>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { showFailToast, showSuccessToast, showConfirmDialog } from 'vant'
-import { getAppointmentHistory, cancelAppointment } from '@/api/appointment'
-import type { Appointment, AppointmentStatus } from '@qianfo/shared'
+import { ref, onMounted } from 'vue';
+import { showFailToast, showSuccessToast, showConfirmDialog } from 'vant';
+import { getAppointmentHistory, cancelAppointment } from '@/api/appointment';
+import type { Appointment, AppointmentStatus } from '@qianfo/shared';
 
-const list = ref<Appointment[]>([])
-const loading = ref(false)
-const refreshing = ref(false)
-const page = ref(1)
-const pageSize = 10
-const total = ref(0)
-const noMore = ref(false)
-const cancellingId = ref<number | null>(null)
+const list = ref<Appointment[]>([]);
+const loading = ref(false);
+const refreshing = ref(false);
+const page = ref(1);
+const pageSize = 10;
+const total = ref(0);
+const noMore = ref(false);
+const cancellingId = ref<number | null>(null);
 
 const statusText = (status: AppointmentStatus) => {
   const map: Record<AppointmentStatus, string> = {
     pending: '待确认',
     confirmed: '已确认',
     cancelled: '已取消',
-  }
-  return map[status]
-}
+  };
+  return map[status];
+};
 
 const statusTagType = (status: AppointmentStatus): 'warning' | 'success' | 'danger' => {
   const map: Record<AppointmentStatus, 'warning' | 'success' | 'danger'> = {
     pending: 'warning',
     confirmed: 'success',
     cancelled: 'danger',
-  }
-  return map[status]
-}
+  };
+  return map[status];
+};
 
 function formatTime(str: string) {
-  const d = new Date(str)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  const d = new Date(str);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 async function fetchList(reset = false) {
-  if (loading.value) return
-  loading.value = true
+  if (loading.value) return;
+  loading.value = true;
   try {
     if (reset) {
-      page.value = 1
-      list.value = []
-      noMore.value = false
+      page.value = 1;
+      list.value = [];
+      noMore.value = false;
     }
-    const res = await getAppointmentHistory(page.value, pageSize)
-    list.value = reset ? res.list : [...list.value, ...res.list]
-    total.value = res.total
-    noMore.value = list.value.length >= res.total
+    const res = await getAppointmentHistory(page.value, pageSize);
+    list.value = reset ? res.list : [...list.value, ...res.list];
+    total.value = res.total;
+    noMore.value = list.value.length >= res.total;
   } catch (e: any) {
-    showFailToast(e.message || '加载失败')
+    showFailToast(e.message || '加载失败');
   } finally {
-    loading.value = false
-    refreshing.value = false
+    loading.value = false;
+    refreshing.value = false;
   }
 }
 
 function onRefresh() {
-  fetchList(true)
+  fetchList(true);
 }
 
 function loadMore() {
-  page.value++
-  fetchList()
+  page.value++;
+  fetchList();
 }
 
-onMounted(() => fetchList(true))
+onMounted(() => fetchList(true));
 
 async function onCancel(item: Appointment) {
   try {
@@ -134,19 +132,19 @@ async function onCancel(item: Appointment) {
       confirmButtonText: '确认取消',
       cancelButtonText: '再想想',
       confirmButtonColor: '#ee0a24',
-    })
+    });
   } catch {
-    return // 用户点击"再想想"
+    return; // 用户点击"再想想"
   }
-  cancellingId.value = item.id
+  cancellingId.value = item.id;
   try {
-    await cancelAppointment(item.id)
-    item.status = 'cancelled'
-    showSuccessToast('预约已取消')
+    await cancelAppointment(item.id);
+    item.status = 'cancelled';
+    showSuccessToast('预约已取消');
   } catch (e: any) {
-    showFailToast(e.message || '取消失败，请重试')
+    showFailToast(e.message || '取消失败，请重试');
   } finally {
-    cancellingId.value = null
+    cancellingId.value = null;
   }
 }
 </script>

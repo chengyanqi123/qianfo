@@ -1,11 +1,7 @@
 <template>
   <el-container class="app-layout">
     <!-- 桌面端：固定侧边栏 -->
-    <el-aside
-      v-if="!isMobile"
-      :width="isCollapsed ? '64px' : '220px'"
-      class="sidebar"
-    >
+    <el-aside v-if="!isMobile" :width="isCollapsed ? '64px' : '220px'" class="sidebar">
       <Sidebar :collapsed="isCollapsed" />
     </el-aside>
 
@@ -24,11 +20,7 @@
     <el-container>
       <!-- 顶栏 -->
       <el-header class="topbar" height="56px">
-        <Topbar
-          :collapsed="isMobile ? false : isCollapsed"
-          :is-mobile="isMobile"
-          @toggle="handleToggle"
-        />
+        <Topbar :collapsed="isMobile ? false : isCollapsed" :is-mobile="isMobile" @toggle="handleToggle" />
       </el-header>
 
       <!-- 内容区 -->
@@ -44,31 +36,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import Sidebar from './Sidebar.vue'
-import Topbar from './Topbar.vue'
-import { useIsMobile } from '@/composables/useIsMobile'
+import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import Sidebar from './Sidebar.vue';
+import Topbar from './Topbar.vue';
+import { useIsMobile } from '@/composables/useIsMobile';
 
-const { isMobile } = useIsMobile()
-const isCollapsed = ref(false)
-const drawerOpen = ref(false)
-const route = useRoute()
+const { isMobile } = useIsMobile();
+const isCollapsed = ref(false);
+const drawerOpen = ref(false);
+const route = useRoute();
 
 function handleToggle() {
   if (isMobile.value) {
-    drawerOpen.value = !drawerOpen.value
+    drawerOpen.value = !drawerOpen.value;
   } else {
-    isCollapsed.value = !isCollapsed.value
+    isCollapsed.value = !isCollapsed.value;
   }
 }
 
 // 路由切换时自动关闭移动端抽屉
-watch(() => route.path, () => {
-  if (isMobile.value) {
-    drawerOpen.value = false
-  }
-})
+watch(
+  () => route.path,
+  () => {
+    if (isMobile.value) {
+      drawerOpen.value = false;
+    }
+  },
+);
 </script>
 
 <style scoped>

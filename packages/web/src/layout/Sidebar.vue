@@ -1,11 +1,5 @@
 <template>
-  <el-menu
-    :collapse="collapsed"
-    :default-active="$route.path"
-    router
-    class="sidebar-menu"
-    @select="$emit('nav')"
-  >
+  <el-menu :collapse="collapsed" :default-active="$route.path" router class="sidebar-menu" @select="$emit('nav')">
     <div class="logo-area">
       <el-icon class="logo-icon"><Calendar /></el-icon>
       <span v-show="!collapsed" class="logo-text">预约管理</span>
@@ -29,8 +23,8 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ collapsed: boolean }>()
-defineEmits<{ (e: 'nav'): void }>()
+defineProps<{ collapsed: boolean }>();
+defineEmits<{ (e: 'nav'): void }>();
 </script>
 
 <style scoped>

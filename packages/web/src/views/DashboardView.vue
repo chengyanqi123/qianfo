@@ -36,34 +36,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { use } from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart, PieChart } from 'echarts/charts'
-import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-  TitleComponent,
-} from 'echarts/components'
-import VChart from 'vue-echarts'
-import { Calendar, User, Checked, Clock } from '@element-plus/icons-vue'
-import { getDashboardStats, getDailyAppointments, getStatusDistribution } from '@/api/dashboard'
-import type { DashboardStats } from '@qianfo/shared'
+import { ref, computed, onMounted } from 'vue';
+import { use } from 'echarts/core';
+import { CanvasRenderer } from 'echarts/renderers';
+import { BarChart, PieChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent, LegendComponent, TitleComponent } from 'echarts/components';
+import VChart from 'vue-echarts';
+import { Calendar, User, Checked, Clock } from '@element-plus/icons-vue';
+import { getDashboardStats, getDailyAppointments, getStatusDistribution } from '@/api/dashboard';
+import type { DashboardStats } from '@qianfo/shared';
 
-use([CanvasRenderer, BarChart, PieChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent])
+use([CanvasRenderer, BarChart, PieChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent]);
 
-const stats = ref<DashboardStats | null>(null)
-const chartLoading = ref(true)
-const barData = ref<{ date: string; count: number }[]>([])
-const pieData = ref<{ status: string; label: string; count: number }[]>([])
+const stats = ref<DashboardStats | null>(null);
+const chartLoading = ref(true);
+const barData = ref<{ date: string; count: number }[]>([]);
+const pieData = ref<{ status: string; label: string; count: number }[]>([]);
 
 const statCards = [
   { key: 'totalAppointments' as const, label: '总预约数', icon: 'Calendar', color: '#409eff' },
   { key: 'todayAppointments' as const, label: '今日预约', icon: 'Clock', color: '#67c23a' },
   { key: 'pendingAppointments' as const, label: '待确认', icon: 'Checked', color: '#e6a23c' },
   { key: 'totalUsers' as const, label: '注册用户', icon: 'User', color: '#f56c6c' },
-]
+];
 
 const barOption = computed(() => ({
   tooltip: { trigger: 'axis' },
@@ -82,7 +77,7 @@ const barOption = computed(() => ({
       itemStyle: { color: '#409eff', borderRadius: [4, 4, 0, 0] },
     },
   ],
-}))
+}));
 
 const pieOption = computed(() => ({
   tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
@@ -101,19 +96,15 @@ const pieOption = computed(() => ({
     },
   ],
   color: ['#e6a23c', '#67c23a', '#f56c6c'],
-}))
+}));
 
 onMounted(async () => {
-  const [s, daily, dist] = await Promise.all([
-    getDashboardStats(),
-    getDailyAppointments(7),
-    getStatusDistribution(),
-  ])
-  stats.value = s
-  barData.value = daily
-  pieData.value = dist
-  chartLoading.value = false
-})
+  const [s, daily, dist] = await Promise.all([getDashboardStats(), getDailyAppointments(7), getStatusDistribution()]);
+  stats.value = s;
+  barData.value = daily;
+  pieData.value = dist;
+  chartLoading.value = false;
+});
 </script>
 
 <style scoped>

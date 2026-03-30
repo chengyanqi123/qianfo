@@ -32,22 +32,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { Expand, Fold, Sunny, Moon, UserFilled, SwitchButton, ArrowDown } from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
-import { useTheme } from '@/composables/useTheme'
+import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { Expand, Fold, Sunny, Moon, UserFilled, SwitchButton, ArrowDown } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
+import { useAuthStore } from '@/stores/auth';
+import { useTheme } from '@/composables/useTheme';
 
-defineProps<{ collapsed: boolean; isMobile: boolean }>()
-defineEmits<{ (e: 'toggle'): void }>()
+defineProps<{ collapsed: boolean; isMobile: boolean }>();
+defineEmits<{ (e: 'toggle'): void }>();
 
-const auth = useAuthStore()
-const router = useRouter()
-const route = useRoute()
-const { isDark, toggleTheme } = useTheme()
+const auth = useAuthStore();
+const router = useRouter();
+const route = useRoute();
+const { isDark, toggleTheme } = useTheme();
 
-const currentTitle = computed(() => route.meta.title as string | undefined)
+const currentTitle = computed(() => route.meta.title as string | undefined);
 
 async function handleCommand(cmd: string) {
   if (cmd === 'logout') {
@@ -55,9 +55,9 @@ async function handleCommand(cmd: string) {
       confirmButtonText: '确认',
       cancelButtonText: '取消',
       type: 'warning',
-    })
-    auth.logout()
-    router.replace('/login')
+    });
+    auth.logout();
+    router.replace('/login');
   }
 }
 </script>

@@ -1,4 +1,4 @@
-import { useDark } from '@vueuse/core'
+import { useDark } from '@vueuse/core';
 
 /**
  * 自动跟随系统的亮/暗模式。
@@ -11,11 +11,11 @@ export function useTheme() {
     attribute: 'class',
     valueDark: 'dark',
     valueLight: '',
-  })
+  });
 
   function toggleTheme() {
-    isDark.value = !isDark.value
+    isDark.value = !isDark.value;
   }
 
-  return { isDark, toggleTheme }
+  return { isDark, toggleTheme };
 }
