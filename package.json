@@ -19,6 +19,9 @@
     "check": "prettier --check .",
     "format": "prettier --write ."
   },
+  "dependencies": {
+    "dayjs": "^1.11.20"
+  },
   "devDependencies": {
     "@antfu/eslint-config": "^7.7.3",
     "eslint": "^10.1.0",

@@ -48,7 +48,7 @@
           ]"
         >
           <!-- <template #button>
-            <van-button size="small" type="primary" plain @click="handleGetPhone" :loading="wxLoading"> 微信获取 </van-button>
+            <van-button size="small" type="primary" plain @click="handleSendCode"> 发送验证码 </van-button>
           </template> -->
         </van-field>
 
@@ -72,7 +72,7 @@
     </div>
 
     <!-- 日期选择器 -->
-    <van-popup v-model:show="showDatePicker" position="bottom" round>
+    <!-- <van-popup v-model:show="showDatePicker" position="bottom" round>
       <van-date-picker
         v-model="datePickerValue"
         title="选择日期"
@@ -81,7 +81,15 @@
         @confirm="onDateConfirm"
         @cancel="showDatePicker = false"
       />
-    </van-popup>
+    </van-popup> -->
+    <van-calendar
+      v-model:show="showDatePicker"
+      @confirm="onCalendarConfirm"
+      switch-mode="month"
+      :min-date="minDate"
+      :max-date="maxDate"
+      :formatter="formatter"
+    />
 
     <!-- 时间选择器 -->
     <van-popup v-model:show="showTimePicker" position="bottom" round>
@@ -98,11 +106,12 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
-import { showSuccessToast, showFailToast, Overlay, type FormInstance, type PickerOption } from 'vant';
+import { showSuccessToast, showFailToast, showConfirmDialog, type FormInstance, type PickerOption } from 'vant';
 import { useWechat } from '@/composables/useWechat';
 import { useUserStore } from '@/stores/user';
 import { submitAppointment } from '@/api/appointment';
 import type { CreateAppointmentDto } from '@qianfo/shared';
+import dayjs from 'dayjs';
 
 const userStore = useUserStore();
 const { login: wxLogin } = useWechat();
@@ -113,7 +122,7 @@ const showDatePicker = ref(false);
 const showTimePicker = ref(false);
 
 const minDate = new Date();
-const maxDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30天内
+const maxDate = dayjs().add(1, 'month').toDate(); // 1个月内
 
 const datePickerValue = ref<string[]>([]);
 const timePickerValue = ref<string[]>(['09', '00']);
@@ -126,19 +135,40 @@ const form = reactive<CreateAppointmentDto & { remark?: string }>({
   remark: '',
 });
 
-if (userStore.getToken()) {
-  // 已登录，直接验证使用token
-} else {
-  // 未登录，获取用户ID换取token
-  wxLogin().then((data) => {
-    // showSuccessToast('登录成功')
-    data && userStore.setUserInfo(data);
-  });
-}
+// if (userStore.getToken()) {
+//   // 已登录，直接验证使用token
+// } else {
+//   // 未登录，获取用户ID换取token
+//   wxLogin().then((data) => {
+//     // showSuccessToast('登录成功')
+//     data && userStore.setUserInfo(data);
+//   });
+// }
 
-function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
-  form.date = selectedValues.join('-');
+function onCalendarConfirm(value: Date) {
+  const selectDate = dayjs(value).format('YYYY-MM-DD');
+  // 如果选择的时间是一个小时之内的
+  if (form.time && selectDate === dayjs().format('YYYY-MM-DD') && Number(form.time.split(':')[0]) <= dayjs().hour()) {
+    return showConfirmDialog({
+      title: '提示',
+      message: '只能预约一小时后的时间，是否继续？继续将重新选择预约时间',
+    }).then(() => {
+      form.date = selectDate;
+      form.time = '';
+      showDatePicker.value = false;
+    });
+  }
+  form.date = selectDate;
   showDatePicker.value = false;
+}
+function formatter(day: any) {
+  const time = dayjs(day.date).valueOf(),
+    maxTime = maxDate.valueOf(),
+    minTime = dayjs(minDate).subtract(1, 'day').valueOf();
+  if (time >= minTime && time <= maxTime) {
+    day.bottomInfo = '余268';
+  }
+  return day;
 }
 
 function onTimeConfirm({ selectedValues }: { selectedValues: string[] }) {
@@ -148,6 +178,12 @@ function onTimeConfirm({ selectedValues }: { selectedValues: string[] }) {
 
 // 只允许整点和半点
 function timeFilter(type: string, options: PickerOption[]) {
+  if (type === 'hour') {
+    const isToday = form.date === dayjs().format('YYYY-MM-DD');
+    const minTime = isToday ? dayjs().hour() + 1 : 7;
+    const maxTime = 18;
+    return options.filter((o) => Number(o.value) >= minTime && Number(o.value) <= maxTime);
+  }
   if (type === 'minute') {
     return options.filter((o) => o.value === '00' || o.value === '30');
   }
@@ -177,7 +213,7 @@ function resetForm() {
   formRef.value?.resetValidation();
   form.date = '';
   form.time = '';
-  form.count = 2;
+  form.count = 1;
   form.remark = '';
 }
 </script>
