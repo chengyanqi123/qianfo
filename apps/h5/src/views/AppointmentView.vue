@@ -91,11 +91,18 @@
         @cancel="showTimePicker = false"
       />
     </van-popup>
+
+    <!-- loading -->
+    <van-overlay :show="loading" z-index="9999">
+      <div class="loading-wrapper">
+        <van-loading />
+      </div>
+    </van-overlay>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, toRaw } from 'vue';
+import { ref, toRaw } from 'vue';
 import { showSuccessToast, showFailToast, showConfirmDialog, type FormInstance, type PickerOption } from 'vant';
 import { useWechat } from '@/composables/useWechat';
 import { useUserStore } from '@/stores/user';
@@ -110,39 +117,66 @@ const formRef = ref<FormInstance>();
 const submitting = ref(false);
 const showDatePicker = ref(false);
 const showTimePicker = ref(false);
-
+//
 const dateAllowRange = [new Date(), dayjs().add(1, 'month').toDate()]; // 1个月内
 const timeAllowRange = ['07:00', '19:00'];
 const timePickerValue = ref<string[]>(['09', '00']);
-
-const form = reactive<CreateAppointmentDto & { remark?: string }>({
+const defaultForm: CreateAppointmentDto = {
   date: '',
   time: '',
   count: 1,
   phone: '',
   remark: '',
-});
+};
+const form = ref({ ...defaultForm });
 
-if (!userStore.getToken()) {
-  wxLogin().then((data) => {
-    data && userStore.setUserInfo(data);
-  });
+// 初始化
+const loading = ref(false);
+init();
+async function init() {
+  loading.value = true;
+  login()
+    .then(() => {
+      // 获取预约人数的限制
+    })
+    .then(() => {
+      // 获取营业时间段
+    })
+    .catch((e) => {
+      showFailToast(e?.message || '预约失败，请稍后重试!');
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+}
+function login() {
+  if (!userStore.getToken()) {
+    return wxLogin().then((data) => {
+      data && userStore.setUserInfo(data);
+    });
+  }
+  return Promise.resolve();
 }
 
+// 日期选择
 function onCalendarConfirm(value: Date) {
   const selectDate = dayjs(value).format('YYYY-MM-DD');
   // 如果选择的时间是一个小时之内的
-  if (form.time && selectDate === dayjs().format('YYYY-MM-DD') && Number(form.time.split(':')[0]) <= dayjs().hour()) {
+  if (
+    form.value.time &&
+    selectDate === dayjs().format('YYYY-MM-DD') &&
+    Number(form.value.time.split(':')[0]) <= dayjs().hour()
+  ) {
     return showConfirmDialog({
       title: '提示',
       message: '只能预约一小时后的时间，是否继续？继续将重新选择预约时间',
     }).then(() => {
-      form.date = selectDate;
-      form.time = '';
+      form.value.date = selectDate;
+      form.value.time = '';
       showDatePicker.value = false;
     });
   }
-  form.date = selectDate;
+  form.value.date = selectDate;
   showDatePicker.value = false;
 }
 function formatter(day: any) {
@@ -155,16 +189,15 @@ function formatter(day: any) {
   return day;
 }
 
+// 时间选择
 function onTimeConfirm({ selectedValues }: { selectedValues: string[] }) {
-  form.time = selectedValues.slice(0, 2).join(':');
+  form.value.time = selectedValues.slice(0, 2).join(':');
   showTimePicker.value = false;
 }
-
-// 只允许整点和半点
 function timeFilter(type: string, options: PickerOption[]) {
   if (type === 'hour') {
     const hourAllowRange = timeAllowRange.map((t) => Number(t.split(':')[0]));
-    const isToday = form.date === dayjs().format('YYYY-MM-DD');
+    const isToday = form.value.date === dayjs().format('YYYY-MM-DD');
     const minTime = isToday ? Math.max(dayjs().hour() + 1, hourAllowRange[0]) : hourAllowRange[0];
     const maxTime = hourAllowRange[1];
     return options.filter((o) => Number(o.value) >= minTime && Number(o.value) <= maxTime);
@@ -175,26 +208,24 @@ function timeFilter(type: string, options: PickerOption[]) {
   return options;
 }
 
+// 提交和重置
 async function onSubmit() {
   submitting.value = true;
+  loading.value = true;
   try {
-    await submitAppointment(toRaw(form));
+    await submitAppointment(toRaw(form.value));
     showSuccessToast('预约成功！');
     resetForm();
   } catch (e: any) {
     showFailToast(e.message || '预约失败，请稍后重试!');
   } finally {
     submitting.value = false;
+    loading.value = false;
   }
 }
-
 function resetForm() {
   formRef.value?.resetValidation();
-  form.date = '';
-  form.time = '';
-  form.count = 1;
-  form.phone = '';
-  form.remark = '';
+  form.value = { ...defaultForm };
 }
 </script>
 
@@ -209,5 +240,13 @@ function resetForm() {
 
 .submit-btn {
   padding: 16px;
+}
+
+.loading-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
