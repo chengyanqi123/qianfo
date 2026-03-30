@@ -1,6 +1,6 @@
 <template>
   <div>
-    <van-nav-bar title="预约历史" />
+    <!-- <van-nav-bar title="预约历史" /> -->
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <div class="page-container">
@@ -30,15 +30,8 @@
             </div>
             <div class="card-footer">
               <span class="created-at">提交于 {{ formatTime(item.createdAt) }}</span>
-              <van-button
-                v-if="item.status === 'pending'"
-                size="small"
-                type="danger"
-                plain
-                round
-                :loading="cancellingId === item.id"
-                @click="onCancel(item)"
-              >
+              <van-button v-if="item.status === 'pending'" size="small" type="danger" plain round
+                :loading="cancellingId === item.id" @click="onCancel(item)">
                 取消预约
               </van-button>
             </div>
@@ -106,7 +99,7 @@ async function fetchList(reset = false) {
     total.value = res.total;
     noMore.value = list.value.length >= res.total;
   } catch (e: any) {
-    showFailToast(e.message || '加载失败');
+    // showFailToast(e.message || '加载失败');
   } finally {
     loading.value = false;
     refreshing.value = false;
@@ -142,7 +135,7 @@ async function onCancel(item: Appointment) {
     item.status = 'cancelled';
     showSuccessToast('预约已取消');
   } catch (e: any) {
-    showFailToast(e.message || '取消失败，请重试');
+    // showFailToast(e.message || '取消失败，请重试');
   } finally {
     cancellingId.value = null;
   }

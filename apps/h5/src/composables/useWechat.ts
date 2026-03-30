@@ -28,7 +28,7 @@ export function useWechat() {
     };
     const authUrl = `${authBase}?${new URLSearchParams(query).toString()}#wechat_redirect`;
     window.location.replace(authUrl);
-    return Promise.reject(null);
+    return Promise.resolve(null);
   }
 
   return { login };

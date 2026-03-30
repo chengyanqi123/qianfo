@@ -1,32 +1,16 @@
 <template>
   <div>
-    <van-nav-bar title="在线预约" />
+    <!-- <van-nav-bar title="在线预约" /> -->
 
     <div class="page-container">
       <van-form ref="formRef" @submit="onSubmit" class="form-card">
         <!-- 预约日期 -->
-        <van-field
-          v-model="form.date"
-          name="date"
-          label="预约日期"
-          placeholder="请选择日期"
-          readonly
-          is-link
-          :rules="[{ required: true, message: '请选择预约日期' }]"
-          @click="showDatePicker = true"
-        />
+        <van-field v-model="form.date" name="date" label="预约日期" placeholder="请选择日期" readonly is-link
+          :rules="[{ required: true, message: '请选择预约日期' }]" @click="showDatePicker = true" />
 
         <!-- 预约时间 -->
-        <van-field
-          v-model="form.time"
-          name="time"
-          label="预约时间"
-          placeholder="请选择时间"
-          readonly
-          is-link
-          :rules="[{ required: true, message: '请选择预约时间' }]"
-          @click="showTimePicker = true"
-        />
+        <van-field v-model="form.time" name="time" label="预约时间" placeholder="请选择时间" readonly is-link
+          :rules="[{ required: true, message: '请选择预约时间' }]" @click="showTimePicker = true" />
 
         <!-- 人数 -->
         <van-field name="count" label="预约人数" :rules="[{ required: true }]">
@@ -36,34 +20,18 @@
         </van-field>
 
         <!-- 联系电话 -->
-        <van-field
-          v-model="form.phone"
-          name="phone"
-          label="联系电话"
-          placeholder="请输入联系电话"
-          type="tel"
-          :rules="[
-            { required: true, message: '请填写联系电话' },
-            { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
-          ]"
-        >
+        <van-field v-model="form.phone" name="phone" label="联系电话" placeholder="请输入联系电话" type="tel" :rules="[
+          { required: true, message: '请填写联系电话' },
+          { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
+        ]">
           <!-- <template #button>
             <van-button size="small" type="primary" plain @click="handleSendCode"> 发送验证码 </van-button>
           </template> -->
         </van-field>
 
         <!-- 备注 -->
-        <van-field
-          v-model="form.remark"
-          name="remark"
-          label="备注"
-          type="textarea"
-          rows="2"
-          autosize
-          placeholder="选填，如特殊需求"
-          maxlength="100"
-          show-word-limit
-        />
+        <van-field v-model="form.remark" name="remark" label="备注" type="textarea" rows="2" autosize
+          placeholder="选填，如特殊需求" maxlength="100" show-word-limit />
 
         <div class="submit-btn">
           <van-button round block type="primary" native-type="submit" :loading="submitting"> 提交预约 </van-button>
@@ -72,24 +40,13 @@
     </div>
 
     <!-- 日期选择器 -->
-    <van-calendar
-      v-model:show="showDatePicker"
-      @confirm="onCalendarConfirm"
-      switch-mode="month"
-      :min-date="dateAllowRange[0]"
-      :max-date="dateAllowRange[1]"
-      :formatter="formatter"
-    />
+    <van-calendar v-model:show="showDatePicker" @confirm="onCalendarConfirm" switch-mode="month"
+      :min-date="dateAllowRange[0]" :max-date="dateAllowRange[1]" :formatter="formatter" />
 
     <!-- 时间选择器 -->
     <van-popup v-model:show="showTimePicker" position="bottom" round>
-      <van-time-picker
-        v-model="timePickerValue"
-        title="选择时间"
-        :filter="timeFilter"
-        @confirm="onTimeConfirm"
-        @cancel="showTimePicker = false"
-      />
+      <van-time-picker v-model="timePickerValue" title="选择时间" :filter="timeFilter" @confirm="onTimeConfirm"
+        @cancel="showTimePicker = false" />
     </van-popup>
 
     <!-- loading -->
@@ -143,18 +100,18 @@ async function init() {
       // 获取营业时间段
     })
     .catch((e) => {
-      showFailToast(e?.message || '系统初始化失败，请稍后重试!');
+      // showFailToast(e?.message || '系统初始化失败，请稍后重试!');
     })
     .finally(() => {
       loading.value = false;
     });
 }
 function login() {
-  // if (!userStore.getToken()) {
-  //   return wxLogin().then((data) => {
-  //     data && userStore.setUserInfo(data);
-  //   });
-  // }
+  if (!userStore.getToken()) {
+    return wxLogin().then((data) => {
+      data && userStore.setUserInfo(data);
+    });
+  }
   return Promise.resolve();
 }
 

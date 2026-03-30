@@ -6,8 +6,8 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', redirect: '/appointment' },
-    { path: '/appointment', component: AppointmentView, meta: { title: '预约' } },
-    { path: '/history', component: HistoryView, meta: { title: '历史' } },
+    { path: '/appointment', component: AppointmentView, meta: { title: '在线预约' } },
+    { path: '/history', component: HistoryView, meta: { title: '预约历史' } },
   ],
 });
 
