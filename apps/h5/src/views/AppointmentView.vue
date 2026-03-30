@@ -143,7 +143,7 @@ async function init() {
       // 获取营业时间段
     })
     .catch((e) => {
-      showFailToast(e?.message || '预约失败，请稍后重试!');
+      showFailToast(e?.message || '系统初始化失败，请稍后重试!');
     })
     .finally(() => {
       loading.value = false;
