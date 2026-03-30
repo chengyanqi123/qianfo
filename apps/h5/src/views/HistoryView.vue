@@ -40,8 +40,10 @@
 
         <!-- 加载更多 -->
         <van-loading v-if="loading && list.length === 0" class="center-loading" />
-        <van-divider v-if="noMore && list.length > 0">没有更多了</van-divider>
-        <div v-if="!noMore && list.length > 0" class="load-more" @click="loadMore">加载更多</div>
+        <div class="buttom-text">
+          <van-divider v-if="noMore && list.length > 0">没有更多了</van-divider>
+          <div v-if="!noMore && list.length > 0" class="load-more" @click="loadMore">加载更多</div>
+        </div>
       </div>
     </van-pull-refresh>
   </div>
@@ -209,5 +211,9 @@ async function onCancel(item: Appointment) {
   color: #1989fa;
   font-size: 14px;
   cursor: pointer;
+}
+
+.buttom-text {
+  padding: 48px 0;
 }
 </style>

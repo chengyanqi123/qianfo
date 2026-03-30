@@ -1,20 +1,8 @@
 import type { CreateAppointmentDto, PageResult, LoginResult } from '@qianfo/shared';
-import { createRequest } from '@qianfo/shared';
-import { useUserStore } from '@/stores/user';
 import { useRouter } from 'vue-router';
-import { showFailToast } from 'vant';
+import { request } from './request';
 
 const router = useRouter();
-
-const request = createRequest(
-  import.meta.env.VITE_API_BASE_URL,
-  () => useUserStore().getToken(),
-  () => {
-    showFailToast('登录信息已过期');
-    useUserStore().clear();
-    router.replace('/appointment');
-  },
-);
 
 /** 用户登录 */
 export async function login(code: string): Promise<LoginResult> {

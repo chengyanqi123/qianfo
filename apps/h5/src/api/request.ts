@@ -23,6 +23,7 @@ request.interceptors.request.use((config) => {
 
 request.interceptors.response.use(
   (response) => {
+    debugger;
     const res = response.data;
     if (res.code !== 0) {
       showFailToast(res.message || `请求失败[${res.code}]`);
@@ -31,6 +32,7 @@ request.interceptors.response.use(
     return res.data;
   },
   (error) => {
+    debugger;
     const message = error?.response?.data?.message || error?.message;
     const code = error?.response?.data?.code || error?.response?.status;
     if (error.response?.status === 401) {
