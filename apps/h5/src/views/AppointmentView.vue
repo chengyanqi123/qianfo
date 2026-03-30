@@ -44,7 +44,7 @@
           type="tel"
           :rules="[
             { required: true, message: '请填写联系电话' },
-            { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
+            { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
           ]"
         >
           <!-- <template #button>
@@ -150,11 +150,11 @@ async function init() {
     });
 }
 function login() {
-  if (!userStore.getToken()) {
-    return wxLogin().then((data) => {
-      data && userStore.setUserInfo(data);
-    });
-  }
+  // if (!userStore.getToken()) {
+  //   return wxLogin().then((data) => {
+  //     data && userStore.setUserInfo(data);
+  //   });
+  // }
   return Promise.resolve();
 }
 
