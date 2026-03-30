@@ -72,22 +72,12 @@
     </div>
 
     <!-- 日期选择器 -->
-    <!-- <van-popup v-model:show="showDatePicker" position="bottom" round>
-      <van-date-picker
-        v-model="datePickerValue"
-        title="选择日期"
-        :min-date="minDate"
-        :max-date="maxDate"
-        @confirm="onDateConfirm"
-        @cancel="showDatePicker = false"
-      />
-    </van-popup> -->
     <van-calendar
       v-model:show="showDatePicker"
       @confirm="onCalendarConfirm"
       switch-mode="month"
-      :min-date="minDate"
-      :max-date="maxDate"
+      :min-date="dateAllowRange[0]"
+      :max-date="dateAllowRange[1]"
       :formatter="formatter"
     />
 
@@ -105,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, toRaw } from 'vue';
 import { showSuccessToast, showFailToast, showConfirmDialog, type FormInstance, type PickerOption } from 'vant';
 import { useWechat } from '@/composables/useWechat';
 import { useUserStore } from '@/stores/user';
@@ -121,10 +111,8 @@ const submitting = ref(false);
 const showDatePicker = ref(false);
 const showTimePicker = ref(false);
 
-const minDate = new Date();
-const maxDate = dayjs().add(1, 'month').toDate(); // 1个月内
-
-const datePickerValue = ref<string[]>([]);
+const dateAllowRange = [new Date(), dayjs().add(1, 'month').toDate()]; // 1个月内
+const timeAllowRange = ['07:00', '19:00'];
 const timePickerValue = ref<string[]>(['09', '00']);
 
 const form = reactive<CreateAppointmentDto & { remark?: string }>({
@@ -135,15 +123,11 @@ const form = reactive<CreateAppointmentDto & { remark?: string }>({
   remark: '',
 });
 
-// if (userStore.getToken()) {
-//   // 已登录，直接验证使用token
-// } else {
-//   // 未登录，获取用户ID换取token
-//   wxLogin().then((data) => {
-//     // showSuccessToast('登录成功')
-//     data && userStore.setUserInfo(data);
-//   });
-// }
+if (!userStore.getToken()) {
+  wxLogin().then((data) => {
+    data && userStore.setUserInfo(data);
+  });
+}
 
 function onCalendarConfirm(value: Date) {
   const selectDate = dayjs(value).format('YYYY-MM-DD');
@@ -162,10 +146,10 @@ function onCalendarConfirm(value: Date) {
   showDatePicker.value = false;
 }
 function formatter(day: any) {
-  const time = dayjs(day.date).valueOf(),
-    maxTime = maxDate.valueOf(),
-    minTime = dayjs(minDate).subtract(1, 'day').valueOf();
-  if (time >= minTime && time <= maxTime) {
+  const timestamp = dayjs(day.date).valueOf(),
+    maxTimeStamp = dayjs(dateAllowRange[1]).valueOf(),
+    minTimeStamp = dayjs(dateAllowRange[0]).subtract(1, 'day').valueOf();
+  if (timestamp >= minTimeStamp && timestamp <= maxTimeStamp) {
     day.bottomInfo = '余268';
   }
   return day;
@@ -179,9 +163,10 @@ function onTimeConfirm({ selectedValues }: { selectedValues: string[] }) {
 // 只允许整点和半点
 function timeFilter(type: string, options: PickerOption[]) {
   if (type === 'hour') {
+    const hourAllowRange = timeAllowRange.map((t) => Number(t.split(':')[0]));
     const isToday = form.date === dayjs().format('YYYY-MM-DD');
-    const minTime = isToday ? dayjs().hour() + 1 : 7;
-    const maxTime = 18;
+    const minTime = isToday ? Math.max(dayjs().hour() + 1, hourAllowRange[0]) : hourAllowRange[0];
+    const maxTime = hourAllowRange[1];
     return options.filter((o) => Number(o.value) >= minTime && Number(o.value) <= maxTime);
   }
   if (type === 'minute') {
@@ -193,17 +178,11 @@ function timeFilter(type: string, options: PickerOption[]) {
 async function onSubmit() {
   submitting.value = true;
   try {
-    await submitAppointment({
-      date: form.date,
-      time: form.time,
-      count: form.count,
-      phone: form.phone,
-      remark: form.remark,
-    });
+    await submitAppointment(toRaw(form));
     showSuccessToast('预约成功！');
     resetForm();
   } catch (e: any) {
-    showFailToast(e.message || '提交失败，请稍后重试');
+    showFailToast(e.message || '预约失败，请稍后重试!');
   } finally {
     submitting.value = false;
   }
@@ -214,6 +193,7 @@ function resetForm() {
   form.date = '';
   form.time = '';
   form.count = 1;
+  form.phone = '';
   form.remark = '';
 }
 </script>
