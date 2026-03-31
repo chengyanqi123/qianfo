@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-loading="loading">
     <!-- <TitleWarp title="工作时间"> </TitleWarp> -->
     <TitleWarp title="预约限流">
       <div class="setting-row">
@@ -30,10 +30,15 @@
 
             <span>全局限流:</span>
           </div>
-          <el-input-number style="width: 100%" v-model="setting.totalLimit" v-bind="limitInputProps" />
+          <el-input-number
+            style="width: 100%"
+            v-model="setting.totalLimit"
+            @change="limitChange"
+            v-bind="limitInputProps"
+          />
         </el-space>
       </div>
-      <el-calendar class="calendar" ref="calendar" @click="calendarCellClickHandler">
+      <el-calendar class="calendar" ref="calendar" v-model="focusDate" @click="calendarCellClickHandler">
         <template #header="{ date }">
           <div class="calendar-header">
             <span>{{ date }}</span>
@@ -63,11 +68,9 @@
                 {{ data.day.split('-').pop() }}
               </div>
               <div class="call-item" :data-day="data?.day" :data-limit="daliys[data?.day]?.limit">
-                {{
-                  (daliys[data?.day]?.limit ?? setting.totalLimit) === -1
-                    ? '不限流'
-                    : (daliys[data?.day]?.limit ?? setting.totalLimit)
-                }}
+                <template v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1">
+                  {{ daliys[data?.day]?.limit ?? setting.totalLimit }}
+                </template>
               </div>
             </template>
           </div>
@@ -99,7 +102,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import TitleWarp from '@/components/TitleWarp.vue';
-import type { CalendarDateType, CalendarInstance } from 'element-plus';
+import * as Apis from '@/api/setting';
+import { dayjs, type CalendarDateType, type CalendarInstance } from 'element-plus';
+import { debounce } from '@qianfo/shared';
+
 const calendar = ref<CalendarInstance>();
 const selectDate = (val: CalendarDateType) => {
   if (!calendar.value) return;
@@ -116,30 +122,59 @@ const limitInputProps = {
 const setting = ref({
   totalLimit: -1,
 });
-const daliys = ref<any>({
-  '2026-03-30': {
-    limit: 0,
-  },
-  '2026-03-31': {
-    limit: 0,
-  },
-  '2026-04-04': {
-    limit: 2000,
-  },
-  '2026-04-05': {
-    limit: 2000,
-  },
-  '2026-04-06': {
-    limit: 2000,
-  },
-});
+const daliys = ref<any>({});
+const loading = ref(false);
 
+const focusDate = ref(new Date());
 const daliyLimitForm = ref<any>();
 const dialogFormVisible = ref(false);
 const form = ref({
   date: -1,
   limit: -1,
 });
+
+const limitChange = debounce(function (value: number) {
+  loading.value = true;
+  Apis.setDefaultLimit(value)
+    .then(() => {})
+    .finally(() => {
+      loading.value = false;
+    });
+});
+
+const getSettings = debounce(function () {
+  // 当前页面月份的第一天和最后一天
+  const startDate = dayjs(focusDate.value).startOf('month').format('YYYY-MM-DD');
+  const endDate = dayjs(focusDate.value).endOf('month').format('YYYY-MM-DD');
+  loading.value = true;
+  Apis.getLimitByDate({
+    startDate,
+    endDate,
+  })
+    .then((data) => {
+      const { default: defaultLimit, dailys } = data;
+      setting.value.totalLimit = defaultLimit;
+      daliys.value = dailys.reduce((acc: any, item: any) => {
+        acc[item.date] = {
+          limit: item.count,
+        };
+        return acc;
+      }, {});
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+});
+
+watch(
+  () => focusDate.value,
+  () => {
+    getSettings();
+  },
+  {
+    immediate: true,
+  },
+);
 
 function calendarCellClickHandler(e: any) {
   const td = e.target.closest('td.current');
@@ -155,10 +190,15 @@ function calendarCellClickHandler(e: any) {
 
 function submitDaliyLimit() {
   daliyLimitForm.value?.validate().then(() => {
-    daliys.value[form.value.date] = {
-      limit: form.value.limit,
-    };
-    dialogFormVisible.value = false;
+    Apis.setLimitByDate({
+      date: form.value.date,
+      capacity: form.value.limit,
+    }).then(() => {
+      daliys.value[form.value.date] = {
+        limit: form.value.limit,
+      };
+      dialogFormVisible.value = false;
+    });
   });
 }
 </script>

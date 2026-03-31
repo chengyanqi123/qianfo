@@ -21,3 +21,20 @@ export function getRecentDays(n: number): string[] {
     return formatDate(d);
   });
 }
+
+/**
+ * 防抖函数
+ * @param fn
+ * @param delay
+ * @returns
+ */
+export function debounce(fn: any, delay = 300) {
+  let timer: number;
+  return function (...args: any) {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      // @ts-ignore
+      fn.apply(this, args);
+    }, delay);
+  };
+}
