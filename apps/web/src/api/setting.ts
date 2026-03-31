@@ -14,9 +14,9 @@ export function setDefaultLimit(capacity: number): Promise<Result<null>> {
 // 获取指定时间段的默认限制
 type LimitResult = {
   default: number;
-  daliys: { date: string; count: number }[];
+  dailys: { date: string; count: number }[];
 };
-export function getLimitByDate(params: { startDate: string; endDate: string }): Promise<Result<LimitResult>> {
+export function getLimitByDate(params: { startDate: string; endDate: string }): Promise<LimitResult> {
   return request.post('/setting/capacity/config', params);
 }
 

@@ -129,7 +129,7 @@ const focusDate = ref(new Date());
 const daliyLimitForm = ref<any>();
 const dialogFormVisible = ref(false);
 const form = ref({
-  date: -1,
+  date: '',
   limit: -1,
 });
 
