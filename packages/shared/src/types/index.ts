@@ -112,8 +112,8 @@ export interface GetAppointmentInfoByDateParams {
 export type AppointmentInfoResult = Record<
   string, // 日期字符串 'YYYY-MM-DD'
   {
-    limit: number;
-    confirmed: number;
-    remaining: number;
+    limit: number; // 当天的预约限制
+    confirmed: number; // 已预约（包含确认和预约中）的数量
+    remaining: number; // 剩余可预约数量
   }
 >;

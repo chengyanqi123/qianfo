@@ -87,7 +87,7 @@
               </div>
               <!-- 剩余数量 -->
               <div class="cell-item warning" v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1">
-                {{ (daliys[data?.day]?.limit ?? setting.totalLimit) - (daliys[data?.day]?.confirmed ?? 0) }}
+                {{ daliys[data?.day]?.remaining ?? 0 }}
               </div>
             </template>
           </div>
@@ -141,7 +141,7 @@ const limitInputProps = {
 const setting = ref({
   totalLimit: -1,
 });
-const daliys = ref<Record<string, { limit: number; confirmed: number }>>({});
+const daliys = ref<Awaited<ReturnType<typeof Apis.getReserveByDate>>>({});
 
 const focusDate = ref(new Date());
 const daliyLimitForm = ref<any>();
@@ -153,31 +153,24 @@ const form = ref({
 
 const limitChange: any = debounce(function (value: number) {
   Apis.setDefaultLimit({ capacity: value });
-});
+}, 300);
 
-const getSettings = debounce(function (options?: Parameters<typeof Apis.getLimitByDate>[1]) {
+const getReserve = debounce(function (options?: Parameters<typeof Apis.getLimitByDate>[1]) {
   // 当前页面月份的第一天和最后一天
   const startDate = dayjs(focusDate.value).startOf('month').format('YYYY-MM-DD');
   const endDate = dayjs(focusDate.value).endOf('month').format('YYYY-MM-DD');
-  Apis.getLimitByDate(
+  Apis.getReserveByDate(
     {
       startDate,
       endDate,
     },
     options,
   ).then((data) => {
-    const { default: defaultLimit, dailys } = data;
-    setting.value.totalLimit = defaultLimit;
-    daliys.value = dailys.reduce((acc: any, item: any) => {
-      acc[item.date] = {
-        limit: item.count,
-        confirmed: item.confirmedCount,
-      };
-      return acc;
-    }, {});
+    daliys.value = data || {};
   });
-});
+}, 300);
 
+getDefaultLimit();
 watch(
   () => focusDate.value,
   () => {
@@ -185,7 +178,7 @@ watch(
       return;
     }
     const controller = new AbortController();
-    getSettings({ signal: controller.signal });
+    getReserve({ signal: controller.signal });
     onWatcherCleanup(() => {
       controller.abort();
     });
@@ -194,6 +187,13 @@ watch(
     immediate: true,
   },
 );
+
+function getDefaultLimit() {
+  Apis.getDefaultLimit().then((data) => {
+    setting.value.totalLimit = data;
+    return;
+  });
+}
 
 function calendarCellClickHandler(data: any) {
   // 点击的不是当前页月份的日期不弹窗
@@ -219,10 +219,8 @@ function submitDaliyLimit() {
       date: form.value.date,
       capacity: form.value.limit,
     }).then(() => {
-      daliys.value[form.value.date] = {
-        limit: form.value.limit,
-        confirmed: daliys.value[form.value.date]?.confirmed ?? 0,
-      };
+      daliys.value[form.value.date].limit = form.value.limit;
+      daliys.value[form.value.date].remaining = form.value.limit - daliys.value[form.value.date].confirmed;
       dialogFormVisible.value = false;
     });
   });
