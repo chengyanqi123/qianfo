@@ -104,3 +104,16 @@ export interface SetLimitByDateParams {
   date: string;
   capacity: number;
 }
+
+export interface GetAppointmentInfoByDateParams {
+  startDate: string; // 日期字符串 'YYYY-MM-DD'
+  endDate: string; // 日期字符串 'YYYY-MM-DD'
+}
+export type AppointmentInfoResult = Record<
+  string, // 日期字符串 'YYYY-MM-DD'
+  {
+    limit: number;
+    confirmed: number;
+    remaining: number;
+  }
+>;

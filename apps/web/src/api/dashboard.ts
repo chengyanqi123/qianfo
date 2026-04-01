@@ -1,6 +1,6 @@
 import { request, isMock } from './request';
 import type { DashboardStats, DailyCount } from '@qianfo/shared';
-import { getRecentDays } from '@qianfo/shared';
+import { getRecentDays, DASHBOARD_STATS, DASHBOARD_DAILY, DASHBOARD_STATUS_DISTRIBUTION } from '@qianfo/shared';
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   if (isMock) {
@@ -12,7 +12,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       pendingAppointments: 24,
     };
   }
-  return request.get('/dashboard/stats');
+  return request.get(DASHBOARD_STATS);
 }
 
 export async function getDailyAppointments(days = 7): Promise<DailyCount[]> {
@@ -24,7 +24,7 @@ export async function getDailyAppointments(days = 7): Promise<DailyCount[]> {
       count: Math.floor(Math.random() * 20) + 5,
     }));
   }
-  return request.get('/dashboard/daily', { params: { days } });
+  return request.get(DASHBOARD_DAILY, { params: { days } });
 }
 
 export async function getStatusDistribution(): Promise<{ status: string; label: string; count: number }[]> {
@@ -36,5 +36,5 @@ export async function getStatusDistribution(): Promise<{ status: string; label: 
       { status: 'cancelled', label: '已取消', count: 115 },
     ];
   }
-  return request.get('/dashboard/status-distribution');
+  return request.get(DASHBOARD_STATUS_DISTRIBUTION);
 }

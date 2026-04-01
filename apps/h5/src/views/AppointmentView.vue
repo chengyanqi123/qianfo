@@ -5,12 +5,28 @@
     <div class="page-container">
       <van-form ref="formRef" @submit="onSubmit" class="form-card">
         <!-- 预约日期 -->
-        <van-field v-model="form.date" name="date" label="预约日期" placeholder="请选择日期" readonly is-link
-          :rules="[{ required: true, message: '请选择预约日期' }]" @click="showDatePicker = true" />
+        <van-field
+          v-model="form.date"
+          name="date"
+          label="预约日期"
+          placeholder="请选择日期"
+          readonly
+          is-link
+          :rules="[{ required: true, message: '请选择预约日期' }]"
+          @click="showDatePicker = true"
+        />
 
         <!-- 预约时间 -->
-        <van-field v-model="form.time" name="time" label="预约时间" placeholder="请选择时间" readonly is-link
-          :rules="[{ required: true, message: '请选择预约时间' }]" @click="showTimePicker = true" />
+        <van-field
+          v-model="form.time"
+          name="time"
+          label="预约时间"
+          placeholder="请选择时间"
+          readonly
+          is-link
+          :rules="[{ required: true, message: '请选择预约时间' }]"
+          @click="showTimePicker = true"
+        />
 
         <!-- 人数 -->
         <van-field name="count" label="预约人数" :rules="[{ required: true }]">
@@ -20,18 +36,34 @@
         </van-field>
 
         <!-- 联系电话 -->
-        <van-field v-model="form.phone" name="phone" label="联系电话" placeholder="请输入联系电话" type="tel" :rules="[
-          { required: true, message: '请填写联系电话' },
-          { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
-        ]">
+        <van-field
+          v-model="form.phone"
+          name="phone"
+          label="联系电话"
+          placeholder="请输入联系电话"
+          type="tel"
+          :rules="[
+            { required: true, message: '请填写联系电话' },
+            { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
+          ]"
+        >
           <!-- <template #button>
             <van-button size="small" type="primary" plain @click="handleSendCode"> 发送验证码 </van-button>
           </template> -->
         </van-field>
 
         <!-- 备注 -->
-        <van-field v-model="form.remark" name="remark" label="备注" type="textarea" rows="2" autosize
-          placeholder="选填，如特殊需求" maxlength="100" show-word-limit />
+        <van-field
+          v-model="form.remark"
+          name="remark"
+          label="备注"
+          type="textarea"
+          rows="2"
+          autosize
+          placeholder="选填，如特殊需求"
+          maxlength="100"
+          show-word-limit
+        />
 
         <div class="submit-btn">
           <van-button round block type="primary" native-type="submit" :loading="submitting"> 提交预约 </van-button>
@@ -40,13 +72,24 @@
     </div>
 
     <!-- 日期选择器 -->
-    <van-calendar v-model:show="showDatePicker" @confirm="onCalendarConfirm" switch-mode="month"
-      :min-date="dateAllowRange[0]" :max-date="dateAllowRange[1]" :formatter="formatter" />
+    <van-calendar
+      v-model:show="showDatePicker"
+      @confirm="onCalendarConfirm"
+      switch-mode="month"
+      :min-date="dateAllowRange[0]"
+      :max-date="dateAllowRange[1]"
+      :formatter="formatter"
+    />
 
     <!-- 时间选择器 -->
     <van-popup v-model:show="showTimePicker" position="bottom" round>
-      <van-time-picker v-model="timePickerValue" title="选择时间" :filter="timeFilter" @confirm="onTimeConfirm"
-        @cancel="showTimePicker = false" />
+      <van-time-picker
+        v-model="timePickerValue"
+        title="选择时间"
+        :filter="timeFilter"
+        @confirm="onTimeConfirm"
+        @cancel="showTimePicker = false"
+      />
     </van-popup>
 
     <!-- loading -->
@@ -64,8 +107,9 @@ import { showSuccessToast, showFailToast, showConfirmDialog, type FormInstance, 
 import { useWechat } from '@/composables/useWechat';
 import { useUserStore } from '@/stores/user';
 import { submitAppointment } from '@/api/appointment';
-import type { CreateAppointmentDto } from '@qianfo/shared';
+import type { CreateAppointmentDto, LimitResult } from '@qianfo/shared';
 import dayjs from 'dayjs';
+import { getLimitByDate } from '@/api/setting';
 
 const userStore = useUserStore();
 const { login: wxLogin } = useWechat();
@@ -86,6 +130,10 @@ const defaultForm: CreateAppointmentDto = {
   remark: '',
 };
 const form = ref({ ...defaultForm });
+const setting = ref({
+  totalLimit: -1,
+});
+const daliys = ref<Record<string, { limit: number; confirmed: number }>>({});
 
 // 初始化
 const loading = ref(false);
@@ -95,8 +143,21 @@ async function init() {
   login()
     .then(() => {
       // 获取预约人数的限制
+      return getLimitByDate({
+        startDate: dayjs(dateAllowRange[0]).format('YYYY-MM-DD'),
+        endDate: dayjs(dateAllowRange[1]).format('YYYY-MM-DD'),
+      });
     })
-    .then(() => {
+    .then((data) => {
+      const { default: defaultLimit, dailys } = data;
+      setting.value.totalLimit = defaultLimit;
+      daliys.value = dailys.reduce((acc: any, item: any) => {
+        acc[item.date] = {
+          limit: item.count,
+          confirmed: item.confirmedCount,
+        };
+        return acc;
+      }, {});
       // 获取营业时间段
     })
     .catch((e) => {
@@ -118,30 +179,79 @@ function login() {
 // 日期选择
 function onCalendarConfirm(value: Date) {
   const selectDate = dayjs(value).format('YYYY-MM-DD');
-  // 如果选择的时间是一个小时之内的
-  if (
-    form.value.time &&
-    selectDate === dayjs().format('YYYY-MM-DD') &&
-    Number(form.value.time.split(':')[0]) <= dayjs().hour()
-  ) {
-    return showConfirmDialog({
-      title: '提示',
-      message: '只能预约一小时后的时间，是否继续？继续将重新选择预约时间',
-    }).then(() => {
-      form.value.date = selectDate;
-      form.value.time = '';
-      showDatePicker.value = false;
+  const today = dayjs().format('YYYY-MM-DD');
+  const isToday = selectDate === today;
+  // 如果选择日期在今天之前
+  if (dayjs(selectDate).isBefore(today)) {
+    showFailToast({
+      type: 'fail',
+      mask: true,
+      message: '请选择有效日期',
+      duration: 1800,
     });
+    return;
   }
-  form.value.date = selectDate;
-  showDatePicker.value = false;
+  // 如果选择的日期是今日
+  if (isToday) {
+    const currentTime = dayjs().format('HH:mm');
+    // 当前不在营业时间段内
+    if (currentTime < timeAllowRange[0] || currentTime > timeAllowRange[1]) {
+      showFailToast({
+        type: 'fail',
+        mask: true,
+        message: `抱歉，今日已过营业时间！`,
+        duration: 2400,
+      });
+      return;
+    }
+    // 如果先选择了时间，且选择的时间是半小时之内的
+    // 只能预约半小时后的时间
+    if (form.value.time) {
+      const [h, m] = form.value.time.split(':').map(Number);
+      const selectedMinutes = h * 60 + m;
+      const nowMinutes = dayjs().hour() * 60 + dayjs().minute();
+      if (selectedMinutes <= nowMinutes + 15) {
+        showFailToast({
+          type: 'fail',
+          mask: true,
+          message: '抱歉，请提前15分钟预约！',
+          duration: 2400,
+        });
+        return;
+      }
+    }
+    form.value.date = selectDate;
+    showDatePicker.value = false;
+  }
 }
 function formatter(day: any) {
+  const dateString = dayjs(day.date).format('YYYY-MM-DD');
   const timestamp = dayjs(day.date).valueOf(),
     maxTimeStamp = dayjs(dateAllowRange[1]).valueOf(),
     minTimeStamp = dayjs(dateAllowRange[0]).subtract(1, 'day').valueOf();
-  if (timestamp >= minTimeStamp && timestamp <= maxTimeStamp) {
-    day.bottomInfo = '余268';
+  const isNotRange = timestamp < minTimeStamp || timestamp > maxTimeStamp;
+  // 禁用不在范围内的日期
+  if (isNotRange) {
+    day.type = 'disabled';
+  }
+  // 显示剩余预约数
+  const daily = daliys.value[dateString];
+  if (daily) {
+    const { limit, confirmed } = daily;
+    const isLimitSet = setting.value.totalLimit > -1 && limit > -1;
+    const remaining = `${limit} - ${confirmed}`;
+    // 是否设置了限制
+    if (isLimitSet) {
+      // 已预约人数达到限制
+      if (confirmed >= limit) {
+        day.type = 'disabled';
+        day.bottomInfo = '预约已满';
+      } else {
+        day.bottomInfo = `余${remaining}`;
+      }
+    } else {
+      day.bottomInfo = `不限`;
+    }
   }
   return day;
 }

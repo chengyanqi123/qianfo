@@ -1,4 +1,4 @@
-import * as Apis from '@/api/appointment';
+import * as Apis from '@/api/login';
 const SITE_ADDRESS = import.meta.env.VITE_SITE_ADDRESS;
 const WX_APP_ID = import.meta.env.VITE_WX_APP_ID;
 import type { LoginResult } from '@qianfo/shared';

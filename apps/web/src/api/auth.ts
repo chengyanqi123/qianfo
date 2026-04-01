@@ -1,5 +1,6 @@
 import { request, isMock } from './request';
 import type { LoginDto, LoginResult } from '@qianfo/shared';
+import { AUTH_LOGIN } from '@qianfo/shared';
 
 const MOCK_USER = {
   id: 1,
@@ -16,5 +17,5 @@ export async function login(dto: LoginDto): Promise<LoginResult> {
     }
     throw new Error('账号或密码错误');
   }
-  return request.post('/auth/login', dto);
+  return request.post(AUTH_LOGIN, dto);
 }

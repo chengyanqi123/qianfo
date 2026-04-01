@@ -141,7 +141,7 @@ const limitInputProps = {
 const setting = ref({
   totalLimit: -1,
 });
-const daliys = ref<any>({});
+const daliys = ref<Record<string, { limit: number; confirmed: number }>>({});
 
 const focusDate = ref(new Date());
 const daliyLimitForm = ref<any>();

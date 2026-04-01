@@ -1,5 +1,6 @@
 import { request, isMock } from './request';
 import type { Appointment, AppointmentStatus, PageResult } from '@qianfo/shared';
+import { APPOINTMENTS, appointmentStatusUrl } from '@qianfo/shared';
 
 export interface AppointmentFilter {
   page: number;
@@ -38,7 +39,7 @@ export async function getAppointments(filter: AppointmentFilter): Promise<PageRe
       pageSize: filter.pageSize,
     };
   }
-  return request.get('/appointments', { params: filter });
+  return request.get(APPOINTMENTS, { params: filter });
 }
 
 export async function updateAppointmentStatus(id: number, status: AppointmentStatus): Promise<void> {
@@ -48,5 +49,5 @@ export async function updateAppointmentStatus(id: number, status: AppointmentSta
     if (item) item.status = status;
     return;
   }
-  return request.patch(`/appointments/${id}/status`, { status });
+  return request.patch(appointmentStatusUrl(id), { status });
 }

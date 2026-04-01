@@ -1,5 +1,6 @@
 import { request, isMock } from './request';
 import type { User, PageResult } from '@qianfo/shared';
+import { USERS } from '@qianfo/shared';
 
 export interface UserFilter {
   page: number;
@@ -30,5 +31,5 @@ export async function getUsers(filter: UserFilter): Promise<PageResult<User>> {
       pageSize: filter.pageSize,
     };
   }
-  return request.get('/users', { params: filter });
+  return request.get(USERS, { params: filter });
 }
