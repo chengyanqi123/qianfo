@@ -191,7 +191,6 @@ watch(
 function getDefaultLimit() {
   Apis.getDefaultLimit().then((data) => {
     setting.value.totalLimit = data;
-    return;
   });
 }
 

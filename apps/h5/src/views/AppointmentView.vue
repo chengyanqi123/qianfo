@@ -73,6 +73,7 @@
 
     <!-- 日期选择器 -->
     <van-calendar
+      v-if="inited"
       v-model:show="showDatePicker"
       @confirm="onCalendarConfirm"
       switch-mode="month"
@@ -107,9 +108,9 @@ import { showSuccessToast, showFailToast, showConfirmDialog, type FormInstance, 
 import { useWechat } from '@/composables/useWechat';
 import { useUserStore } from '@/stores/user';
 import { submitAppointment } from '@/api/appointment';
-import type { CreateAppointmentDto, LimitResult } from '@qianfo/shared';
+import type { CreateAppointmentDto } from '@qianfo/shared';
 import dayjs from 'dayjs';
-import { getLimitByDate } from '@/api/setting';
+import { getDefaultLimit, getReserveByDate } from '@/api/setting';
 
 const userStore = useUserStore();
 const { login: wxLogin } = useWechat();
@@ -133,37 +134,36 @@ const form = ref({ ...defaultForm });
 const setting = ref({
   totalLimit: -1,
 });
-const daliys = ref<Record<string, { limit: number; confirmed: number }>>({});
+const daliys = ref<Awaited<ReturnType<typeof getReserveByDate>>>({});
 
 // 初始化
 const loading = ref(false);
+const inited = ref(false);
 init();
 async function init() {
   loading.value = true;
   login()
     .then(() => {
+      // 获取默认预约限制
+      return getDefaultLimit();
+    })
+    .then((data) => {
+      setting.value.totalLimit = data;
       // 获取预约人数的限制
-      return getLimitByDate({
+      return getReserveByDate({
         startDate: dayjs(dateAllowRange[0]).format('YYYY-MM-DD'),
         endDate: dayjs(dateAllowRange[1]).format('YYYY-MM-DD'),
       });
     })
     .then((data) => {
-      const { default: defaultLimit, dailys } = data;
-      setting.value.totalLimit = defaultLimit;
-      daliys.value = dailys.reduce((acc: any, item: any) => {
-        acc[item.date] = {
-          limit: item.count,
-          confirmed: item.confirmedCount,
-        };
-        return acc;
-      }, {});
+      daliys.value = data || {};
       // 获取营业时间段
     })
     .catch((e) => {
       // showFailToast(e?.message || '系统初始化失败，请稍后重试!');
     })
     .finally(() => {
+      inited.value = true;
       loading.value = false;
     });
 }
@@ -225,34 +225,45 @@ function onCalendarConfirm(value: Date) {
   }
 }
 function formatter(day: any) {
-  const dateString = dayjs(day.date).format('YYYY-MM-DD');
-  const timestamp = dayjs(day.date).valueOf(),
+  const date = dayjs(day.date);
+  const nowString = dayjs().format('YYYY-MM-DD');
+  const timestamp = date.valueOf(),
     maxTimeStamp = dayjs(dateAllowRange[1]).valueOf(),
-    minTimeStamp = dayjs(dateAllowRange[0]).subtract(1, 'day').valueOf();
+    minTimeStamp = dayjs(dateAllowRange[0]).subtract(1, 'day').valueOf(),
+    dateString = date.format('YYYY-MM-DD');
   const isNotRange = timestamp < minTimeStamp || timestamp > maxTimeStamp;
+
+  if (dateString === nowString) {
+    day.type = '今天';
+  }
+
   // 禁用不在范围内的日期
   if (isNotRange) {
     day.type = 'disabled';
   }
-  // 显示剩余预约数
+
+  // 没有预约信息
   const daily = daliys.value[dateString];
-  if (daily) {
-    const { limit, confirmed } = daily;
-    const isLimitSet = setting.value.totalLimit > -1 && limit > -1;
-    const remaining = `${limit} - ${confirmed}`;
-    // 是否设置了限制
-    if (isLimitSet) {
-      // 已预约人数达到限制
-      if (confirmed >= limit) {
-        day.type = 'disabled';
-        day.bottomInfo = '预约已满';
-      } else {
-        day.bottomInfo = `余${remaining}`;
-      }
-    } else {
-      day.bottomInfo = `不限`;
-    }
+  if (!daily) {
+    return day;
   }
+
+  // 有预约信息但不限额
+  const { limit, confirmed, remaining } = daily;
+  const isSetLimit = (setting.value.totalLimit ?? limit) !== -1;
+  if (!isSetLimit) {
+    day.bottomInfo = '不限';
+    return day;
+  }
+
+  // 有预约信息且有限额
+  if (remaining <= 0) {
+    day.type = 'disabled';
+    day.bottomInfo = '预约已满';
+  } else {
+    day.bottomInfo = `剩${remaining}`;
+  }
+
   return day;
 }
 

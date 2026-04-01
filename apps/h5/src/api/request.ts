@@ -1,9 +1,7 @@
 import axios from 'axios';
 import { useUserStore } from '@/stores/user';
-import { useRouter } from 'vue-router';
+import router from '@/router';
 import { showFailToast } from 'vant';
-
-const router = useRouter();
 
 export const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,

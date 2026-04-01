@@ -19,7 +19,7 @@ export function getDefaultLimit(_params = {}, options?: AxiosRequestConfig): Pro
 }
 
 // 获取指定时间段的预约情况
-export function getAppointmentInfoByDate(
+export function getReserveByDate(
   params: GetAppointmentInfoByDateParams,
   options?: AxiosRequestConfig,
 ): Promise<AppointmentInfoResult> {

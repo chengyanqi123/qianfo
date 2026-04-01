@@ -221,6 +221,6 @@ async function onCancel(item: Appointment) {
 }
 
 .buttom-text {
-  padding: 48px 0;
+  padding: 16px 0 32px 0;
 }
 </style>
