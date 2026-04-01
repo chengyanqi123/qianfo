@@ -30,8 +30,15 @@
             </div>
             <div class="card-footer">
               <span class="created-at">提交于 {{ formatTime(item.createdAt) }}</span>
-              <van-button v-if="item.status === 'pending'" size="small" type="danger" plain round
-                :loading="cancellingId === item.id" @click="onCancel(item)">
+              <van-button
+                v-if="item.status === 'pending'"
+                size="small"
+                type="danger"
+                plain
+                round
+                :loading="cancellingId === item.id"
+                @click="onCancel(item)"
+              >
                 取消预约
               </van-button>
             </div>

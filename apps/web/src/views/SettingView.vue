@@ -221,6 +221,7 @@ function submitDaliyLimit() {
     }).then(() => {
       daliys.value[form.value.date] = {
         limit: form.value.limit,
+        confirmed: daliys.value[form.value.date]?.confirmed ?? 0,
       };
       dialogFormVisible.value = false;
     });

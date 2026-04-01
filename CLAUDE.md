@@ -33,7 +33,10 @@ pnpm build      # 全量构建
 pnpm lint       # ESLint 检查（@antfu/eslint-config）
 pnpm lint:fix   # ESLint 自动修复
 pnpm format     # Prettier 格式化
-pnpm check      # Prettier 格式检查
+pnpm check:style # Prettier 格式检查
+pnpm check:type  # TypeScript 类型检查（全部）
+pnpm check:type:h5  # TypeScript 类型检查（仅 H5 端）
+pnpm check:type:web # TypeScript 类型检查（仅管理端）
 
 # 在特定包中执行命令
 pnpm --filter h5 add <package>
