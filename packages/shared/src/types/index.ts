@@ -87,3 +87,20 @@ export interface DailyCount {
   date: string;
   count: number;
 }
+
+// ========== 设置 | 预约限制相关 ==========
+export interface LimitResult {
+  default: number;
+  dailys: { date: string; count: number; confirmedCount: number }[];
+}
+export interface SetDefaultLimitParams {
+  capacity: number;
+}
+export interface GetLimitByDateParams {
+  startDate: string;
+  endDate: string;
+}
+export interface SetLimitByDateParams {
+  date: string;
+  capacity: number;
+}

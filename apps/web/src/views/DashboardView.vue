@@ -42,11 +42,14 @@ import { CanvasRenderer } from 'echarts/renderers';
 import { BarChart, PieChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, LegendComponent, TitleComponent } from 'echarts/components';
 import VChart from 'vue-echarts';
-import { Calendar, User, Checked, Clock } from '@element-plus/icons-vue';
 import { getDashboardStats, getDailyAppointments, getStatusDistribution } from '@/api/dashboard';
+import { useTheme } from '@/composables/useTheme';
 import type { DashboardStats } from '@qianfo/shared';
 
 use([CanvasRenderer, BarChart, PieChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent]);
+
+const { isDark } = useTheme();
+const textColor = computed(() => (isDark.value ? '#fff' : '#333'));
 
 const stats = ref<DashboardStats | null>(null);
 const chartLoading = ref(true);
@@ -61,14 +64,20 @@ const statCards = [
 ];
 
 const barOption = computed(() => ({
-  tooltip: { trigger: 'axis' },
+  tooltip: {
+    trigger: 'axis',
+    backgroundColor: isDark.value ? '#333' : '#fff',
+    borderColor: isDark.value ? '#555' : '#ddd',
+    textStyle: { color: textColor.value },
+  },
   grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
   xAxis: {
     type: 'category',
     data: barData.value.map((d) => d.date.slice(5)),
-    axisLine: { lineStyle: { color: '#ddd' } },
+    axisLine: { lineStyle: { color: isDark.value ? '#555' : '#ddd' } },
+    axisLabel: { color: textColor.value },
   },
-  yAxis: { type: 'value', minInterval: 1 },
+  yAxis: { type: 'value', minInterval: 1, axisLabel: { color: textColor.value } },
   series: [
     {
       name: '预约数',
@@ -80,8 +89,14 @@ const barOption = computed(() => ({
 }));
 
 const pieOption = computed(() => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-  legend: { bottom: '5%', left: 'center' },
+  tooltip: {
+    trigger: 'item',
+    formatter: '{b}: {c} ({d}%)',
+    backgroundColor: isDark.value ? '#333' : '#fff',
+    borderColor: isDark.value ? '#555' : '#ddd',
+    textStyle: { color: textColor.value },
+  },
+  legend: { bottom: '5%', left: 'center', textStyle: { color: textColor.value } },
   series: [
     {
       type: 'pie',

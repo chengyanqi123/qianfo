@@ -1,5 +1,5 @@
 <template>
-  <div v-loading="loading">
+  <div>
     <!-- <TitleWarp title="工作时间"> </TitleWarp> -->
     <TitleWarp title="预约限流">
       <div class="setting-row">
@@ -24,7 +24,7 @@
                 <br />
                 -1: 表示不限流
                 <br />
-                0: 当日不能预约
+                0: 表示当日不能预约
               </div>
             </el-popover>
 
@@ -38,7 +38,7 @@
           />
         </el-space>
       </div>
-      <el-calendar class="calendar" ref="calendar" v-model="focusDate" @click="calendarCellClickHandler">
+      <el-calendar class="calendar" ref="calendar" v-model="focusDate">
         <template #header="{ date }">
           <div class="calendar-header">
             <span>{{ date }}</span>
@@ -62,15 +62,32 @@
           </div>
         </template>
         <template #date-cell="{ data }">
-          <div class="calendar-cell">
+          <div
+            class="calendar-cell"
+            @click="
+              calendarCellClickHandler({
+                day: data?.day,
+                limit: daliys[data?.day]?.limit ?? setting.totalLimit,
+                type: data.type,
+              })
+            "
+          >
             <template v-if="data.type === 'current-month'">
+              <!-- 日期 -->
               <div class="day-number" :class="data.isSelected ? 'is-selected' : ''">
                 {{ data.day.split('-').pop() }}
               </div>
-              <div class="call-item" :data-day="data?.day" :data-limit="daliys[data?.day]?.limit">
-                <template v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1">
-                  {{ daliys[data?.day]?.limit ?? setting.totalLimit }}
-                </template>
+              <!-- 限流数量 -->
+              <div class="cell-item error" v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1">
+                {{ daliys[data?.day]?.limit ?? setting.totalLimit }}
+              </div>
+              <!-- 已预约数量 -->
+              <div class="cell-item success" v-if="daliys[data?.day]?.confirmed">
+                {{ daliys[data?.day]?.confirmed ?? 0 }}
+              </div>
+              <!-- 剩余数量 -->
+              <div class="cell-item warning" v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1">
+                {{ (daliys[data?.day]?.limit ?? setting.totalLimit) - (daliys[data?.day]?.confirmed ?? 0) }}
               </div>
             </template>
           </div>
@@ -78,7 +95,9 @@
       </el-calendar>
       <el-space class="tip-dots" size="large">
         <div class="dot text-color">日期</div>
-        <div class="dot warning">限流数量</div>
+        <div class="dot error">限流数量</div>
+        <div class="dot success">已预约数量</div>
+        <div class="dot warning">剩余数量</div>
       </el-space>
     </TitleWarp>
 
@@ -104,7 +123,7 @@ import { ref } from 'vue';
 import TitleWarp from '@/components/TitleWarp.vue';
 import * as Apis from '@/api/setting';
 import { dayjs, type CalendarDateType, type CalendarInstance } from 'element-plus';
-import { debounce } from '@qianfo/shared';
+import { debounce } from 'lodash-es';
 
 const calendar = ref<CalendarInstance>();
 const selectDate = (val: CalendarDateType) => {
@@ -123,7 +142,6 @@ const setting = ref({
   totalLimit: -1,
 });
 const daliys = ref<any>({});
-const loading = ref(false);
 
 const focusDate = ref(new Date());
 const daliyLimitForm = ref<any>();
@@ -133,53 +151,60 @@ const form = ref({
   limit: -1,
 });
 
-const limitChange = debounce(function (value: number) {
-  loading.value = true;
-  Apis.setDefaultLimit(value)
-    .then(() => {})
-    .finally(() => {
-      loading.value = false;
-    });
+const limitChange: any = debounce(function (value: number) {
+  Apis.setDefaultLimit({ capacity: value });
 });
 
-const getSettings = debounce(function () {
+const getSettings = debounce(function (options?: Parameters<typeof Apis.getLimitByDate>[1]) {
   // 当前页面月份的第一天和最后一天
   const startDate = dayjs(focusDate.value).startOf('month').format('YYYY-MM-DD');
   const endDate = dayjs(focusDate.value).endOf('month').format('YYYY-MM-DD');
-  loading.value = true;
-  Apis.getLimitByDate({
-    startDate,
-    endDate,
-  })
-    .then((data) => {
-      const { default: defaultLimit, dailys } = data;
-      setting.value.totalLimit = defaultLimit;
-      daliys.value = dailys.reduce((acc: any, item: any) => {
-        acc[item.date] = {
-          limit: item.count,
-        };
-        return acc;
-      }, {});
-    })
-    .finally(() => {
-      loading.value = false;
-    });
+  Apis.getLimitByDate(
+    {
+      startDate,
+      endDate,
+    },
+    options,
+  ).then((data) => {
+    const { default: defaultLimit, dailys } = data;
+    setting.value.totalLimit = defaultLimit;
+    daliys.value = dailys.reduce((acc: any, item: any) => {
+      acc[item.date] = {
+        limit: item.count,
+        confirmed: item.confirmedCount,
+      };
+      return acc;
+    }, {});
+  });
 });
 
 watch(
   () => focusDate.value,
   () => {
-    getSettings();
+    if (dayjs(focusDate.value).format('YYYY-MM-DD') === form.value.date) {
+      return;
+    }
+    const controller = new AbortController();
+    getSettings({ signal: controller.signal });
+    onWatcherCleanup(() => {
+      controller.abort();
+    });
   },
   {
     immediate: true,
   },
 );
 
-function calendarCellClickHandler(e: any) {
-  const td = e.target.closest('td.current');
-  const callItem = td.querySelector('.call-item');
-  const { day, limit } = callItem?.dataset;
+function calendarCellClickHandler(data: any) {
+  // 点击的不是当前页月份的日期不弹窗
+  if (data.type !== 'current-month') {
+    return;
+  }
+  // 今天之前的日期也不弹窗
+  if (dayjs(data.day).isBefore(dayjs().startOf('day'))) {
+    return;
+  }
+  const { day, limit } = data;
   if (!day) return;
   form.value = {
     date: day,
@@ -246,17 +271,25 @@ function submitDaliyLimit() {
 }
 .day-number {
   text-align: center;
-  font-size: 16px;
+  font-size: 18px;
 }
-.call-item {
+.cell-item.warning {
   color: var(--el-color-warning);
 }
+.cell-item.success {
+  color: var(--el-color-success);
+}
+.cell-item.error {
+  color: var(--el-color-error);
+}
+
 .tip-dots {
   margin-top: 12px;
 }
 .dot {
   display: flex;
   align-items: center;
+  font-size: 14px;
 }
 .dot::before {
   content: '';
@@ -266,8 +299,14 @@ function submitDaliyLimit() {
   border-radius: 50%;
   margin-right: 4px;
 }
-.warning::before {
+.dot.warning::before {
   background-color: var(--el-color-warning);
+}
+.dot.success::before {
+  background-color: var(--el-color-success);
+}
+.dot.error::before {
+  background-color: var(--el-color-error);
 }
 
 html .text-color::before {
