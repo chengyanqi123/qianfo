@@ -104,16 +104,11 @@
 
 <script setup lang="ts">
 import { ref, toRaw } from 'vue';
-import { showSuccessToast, showFailToast, showConfirmDialog, type FormInstance, type PickerOption } from 'vant';
-import { useWechat } from '@/composables/useWechat';
-import { useUserStore } from '@/stores/user';
+import { showSuccessToast, showFailToast, type FormInstance, type PickerOption } from 'vant';
 import { submitAppointment } from '@/api/appointment';
 import type { CreateAppointmentDto } from '@qianfo/shared';
 import dayjs from 'dayjs';
 import { getDefaultLimit, getReserveByDate } from '@/api/setting';
-
-const userStore = useUserStore();
-const { login: wxLogin } = useWechat();
 
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
@@ -141,12 +136,9 @@ const loading = ref(false);
 const inited = ref(false);
 init();
 async function init() {
+  inited.value = false;
   loading.value = true;
-  login()
-    .then(() => {
-      // 获取默认预约限制
-      return getDefaultLimit();
-    })
+  getDefaultLimit()
     .then((data) => {
       setting.value.totalLimit = data;
       // 获取预约人数的限制
@@ -167,14 +159,6 @@ async function init() {
       loading.value = false;
     });
 }
-function login() {
-  if (!userStore.getToken()) {
-    return wxLogin().then((data) => {
-      data && userStore.setUserInfo(data);
-    });
-  }
-  return Promise.resolve();
-}
 
 // 日期选择
 function onCalendarConfirm(value: Date) {
@@ -193,9 +177,12 @@ function onCalendarConfirm(value: Date) {
   }
   // 如果选择的日期是今日
   if (isToday) {
-    const currentTime = dayjs().format('HH:mm');
+    const timestamp = dayjs().valueOf(),
+      maxTimeStamp = dayjs(dateAllowRange[1]).valueOf(),
+      minTimeStamp = dayjs(dateAllowRange[0]).subtract(1, 'day').valueOf();
+    const isNotRange = timestamp < minTimeStamp || timestamp > maxTimeStamp;
     // 当前不在营业时间段内
-    if (currentTime < timeAllowRange[0] || currentTime > timeAllowRange[1]) {
+    if (isNotRange) {
       showFailToast({
         type: 'fail',
         mask: true,
@@ -226,15 +213,22 @@ function onCalendarConfirm(value: Date) {
 }
 function formatter(day: any) {
   const date = dayjs(day.date);
+  const dateString = date.format('YYYY-MM-DD');
+  // 没有预约信息
+  const daily = daliys.value[dateString];
+  if (!daily) {
+    return day;
+  }
+
+  // 转换各种时间
   const nowString = dayjs().format('YYYY-MM-DD');
   const timestamp = date.valueOf(),
     maxTimeStamp = dayjs(dateAllowRange[1]).valueOf(),
-    minTimeStamp = dayjs(dateAllowRange[0]).subtract(1, 'day').valueOf(),
-    dateString = date.format('YYYY-MM-DD');
+    minTimeStamp = dayjs(dateAllowRange[0]).subtract(1, 'day').valueOf();
   const isNotRange = timestamp < minTimeStamp || timestamp > maxTimeStamp;
 
   if (dateString === nowString) {
-    day.type = '今天';
+    day.text = '今天';
     const [sh, sm] = timeAllowRange[0].split(':').map(Number);
     const [eh, em] = timeAllowRange[1].split(':').map(Number);
     // 如果当前时间已经超过营业结束时间，则今天不可预约
@@ -242,21 +236,17 @@ function formatter(day: any) {
     if (h > eh || h < sh || (h === eh && m > em) || (h === sh && m < sm)) {
       day.type = 'disabled';
       day.bottomInfo = '已歇业';
+      return day;
     }
   }
 
   // 禁用不在范围内的日期
   if (isNotRange) {
     day.type = 'disabled';
-  }
-
-  // 没有预约信息
-  const daily = daliys.value[dateString];
-  if (!daily) {
     return day;
   }
 
-  // 有预约信息但不限额
+  // 不限额
   const { limit, confirmed, remaining } = daily;
   const isSetLimit = (setting.value.totalLimit ?? limit) !== -1;
   if (!isSetLimit) {
@@ -264,12 +254,12 @@ function formatter(day: any) {
     return day;
   }
 
-  // 有预约信息且有限额
+  // 有限额
   if (remaining <= 0) {
     day.type = 'disabled';
-    day.bottomInfo = '预约已满';
+    day.bottomInfo = '已约满';
   } else {
-    day.bottomInfo = `剩${remaining}`;
+    day.bottomInfo = `余${remaining}`;
   }
 
   return day;
@@ -295,19 +285,21 @@ function timeFilter(type: string, options: PickerOption[]) {
 }
 
 // 提交和重置
+// init
 async function onSubmit() {
   submitting.value = true;
   loading.value = true;
-  try {
-    await submitAppointment(toRaw(form.value));
-    showSuccessToast('预约成功！');
-    resetForm();
-  } catch (e: any) {
-    showFailToast(e.message || '预约失败，请稍后重试!');
-  } finally {
-    submitting.value = false;
-    loading.value = false;
-  }
+  submitAppointment(toRaw(form.value))
+    .then(() => {
+      showSuccessToast('预约成功！');
+      resetForm();
+      return init();
+    })
+    .then(() => {})
+    .finally(() => {
+      submitting.value = false;
+      loading.value = false;
+    });
 }
 function resetForm() {
   formRef.value?.resetValidation();
