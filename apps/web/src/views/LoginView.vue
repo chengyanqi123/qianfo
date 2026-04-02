@@ -43,6 +43,7 @@ const route = useRoute();
 const auth = useAuthStore();
 
 const formRef = ref<FormInstance>();
+const loading = ref(false);
 const form = reactive({ username: '', password: '' });
 
 const rules: FormRules = {
@@ -52,11 +53,16 @@ const rules: FormRules = {
 
 async function onSubmit() {
   await formRef.value?.validate();
-  const result = await login(form);
-  auth.setToken(result.token);
-  auth.setUser(result.user);
-  const redirect = (route.query.redirect as string) || '/';
-  router.replace(redirect);
+  loading.value = true;
+  try {
+    const result = await login(form);
+    auth.setToken(result.token);
+    auth.setUser(result.user);
+    const redirect = (route.query.redirect as string) || '/';
+    router.replace(redirect);
+  } finally {
+    loading.value = false;
+  }
 }
 </script>
 
