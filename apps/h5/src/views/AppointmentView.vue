@@ -220,9 +220,9 @@ function onCalendarConfirm(value: Date) {
         return;
       }
     }
-    form.value.date = selectDate;
-    showDatePicker.value = false;
   }
+  form.value.date = selectDate;
+  showDatePicker.value = false;
 }
 function formatter(day: any) {
   const date = dayjs(day.date);
