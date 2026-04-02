@@ -235,6 +235,13 @@ function formatter(day: any) {
 
   if (dateString === nowString) {
     day.type = '今天';
+    const [sh, sm] = timeAllowRange[0].split(':').map(Number);
+    const [eh, em] = timeAllowRange[1].split(':').map(Number);
+    // 如果当前时间已经超过营业结束时间，则今天不可预约
+    const [h, m] = [dayjs().hour(), dayjs().minute()];
+    if (h > eh || h < sh || (h === eh && m > em) || (h === sh && m < sm)) {
+      day.type = 'disabled';
+    }
   }
 
   // 禁用不在范围内的日期
