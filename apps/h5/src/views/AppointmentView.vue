@@ -31,7 +31,7 @@
         <!-- 人数 -->
         <van-field name="count" label="预约人数" :rules="[{ required: true }]">
           <template #input>
-            <van-stepper v-model="form.count" min="1" max="20" />
+            <van-stepper v-model="form.count" min="1" max="10" />
           </template>
         </van-field>
 
@@ -248,8 +248,8 @@ function formatter(day: any) {
 
   // 不限额
   const { limit, confirmed, remaining } = daily;
-  const isSetLimit = (setting.value.totalLimit ?? limit) !== -1;
-  if (!isSetLimit) {
+  const isNotLimit = setting.value.totalLimit === -1 && limit === -1;
+  if (isNotLimit) {
     day.bottomInfo = '不限';
     return day;
   }

@@ -10,9 +10,7 @@
           <div v-for="item in list" :key="item.id" class="appointment-card">
             <div class="card-header">
               <span class="date-time">{{ item.date }} {{ item.time }}</span>
-              <van-tag :type="statusTagType(item.status)" round>
-                {{ statusText(item.status) }}
-              </van-tag>
+              <span class="status" :class="statusTagType(item.status)">{{ statusText(item.status) }}</span>
             </div>
             <div class="card-body">
               <div class="info-row">
@@ -30,27 +28,30 @@
             </div>
             <div class="card-footer">
               <span class="created-at">提交于 {{ formatTime(item.createdAt) }}</span>
-              <van-button
-                v-if="item.status === 'pending'"
-                size="small"
-                type="primary"
-                plain
-                round
-                @click="showQrCode(item)"
-              >
-                核销
-              </van-button>
-              <van-button
-                v-if="item.status === 'pending'"
-                size="small"
-                type="danger"
-                plain
-                round
-                :loading="cancellingId === item.id"
-                @click="onCancel(item)"
-              >
-                取消预约
-              </van-button>
+              <div class="btns">
+                <van-button
+                  v-if="item.status === 'pending'"
+                  size="small"
+                  type="primary"
+                  plain
+                  round
+                  @click.stop="showQrCode(item)"
+                >
+                  去核销
+                </van-button>
+                <van-button
+                  v-if="item.status === 'pending'"
+                  style="margin-left: 12px"
+                  size="small"
+                  type="danger"
+                  plain
+                  round
+                  :loading="cancellingId === item.id"
+                  @click.stop="onCancel(item)"
+                >
+                  取消预约
+                </van-button>
+              </div>
             </div>
           </div>
         </div>
@@ -59,13 +60,20 @@
         <van-loading v-if="loading && list.length === 0" class="center-loading" />
         <div class="buttom-text">
           <van-divider v-if="noMore && list.length > 0">没有更多了</van-divider>
-          <div v-if="!noMore && list.length > 0" class="load-more" @click="loadMore">加载更多</div>
+          <div v-if="!noMore && list.length > 0" class="load-more" @click="loadMore">&gt;&gt;点击加载更多&lt;&lt;</div>
         </div>
       </div>
     </van-pull-refresh>
 
     <!-- 核销二维码弹窗 -->
-    <van-popup v-model:show="qrVisible" round closeable style="padding: 32px">
+    <van-popup
+      v-model:show="qrVisible"
+      round
+      closeable
+      :close-on-click-overlay="false"
+      style="padding: 32px"
+      @closed="qrClose"
+    >
       <div class="qr-container">
         <p class="qr-title">核销二维码</p>
         <img v-if="qrDataUrl" :src="qrDataUrl" alt="二维码" class="qr-image" />
@@ -76,8 +84,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { showFailToast, showSuccessToast, showConfirmDialog } from 'vant';
-import { getAppointmentHistory, cancelAppointment } from '@/api/appointment';
+import { showSuccessToast, showConfirmDialog } from 'vant';
+import { getAppointmentHistory, cancelAppointment, getAppointmentStatus } from '@/api/appointment';
 import type { Appointment, AppointmentStatus } from '@qianfo/shared';
 import QRCode from 'qrcode';
 
@@ -86,11 +94,11 @@ const loading = ref(false);
 const refreshing = ref(false);
 const page = ref(1);
 const pageSize = 10;
-const total = ref(0);
 const noMore = ref(false);
 const cancellingId = ref<number | null>(null);
 const qrVisible = ref(false);
 const qrDataUrl = ref('');
+const qrId = ref(0);
 
 const statusText = (status: AppointmentStatus) => {
   const map: Record<AppointmentStatus, string> = {
@@ -126,7 +134,6 @@ async function fetchList(reset = false) {
     }
     const res = await getAppointmentHistory(page.value, pageSize);
     list.value = reset ? res.list : [...list.value, ...res.list];
-    total.value = res.total;
     noMore.value = list.value.length >= res.total;
   } catch (e: any) {
     // showFailToast(e.message || '加载失败');
@@ -147,10 +154,31 @@ function loadMore() {
 
 onMounted(() => fetchList(true));
 
+let loopId: NodeJS.Timeout;
 async function showQrCode(item: Appointment) {
   const content = JSON.stringify({ id: item.id, date: item.date, time: item.time });
   qrDataUrl.value = await QRCode.toDataURL(content, { width: 250, margin: 2 });
+  qrId.value = item.id;
   qrVisible.value = true;
+  loopId = setInterval(() => {
+    getAppointmentStatus(item.id).then((status) => {
+      if (status === 'confirmed') {
+        const target = list.value.find((i) => i.id === qrId.value);
+        if (target) target.status = 'confirmed';
+        resetQr();
+        showSuccessToast('核销成功');
+      }
+    });
+  }, 2000);
+}
+function qrClose() {
+  clearInterval(loopId);
+  resetQr();
+}
+function resetQr() {
+  qrDataUrl.value = '';
+  qrId.value = 0;
+  qrVisible.value = false;
 }
 
 async function onCancel(item: Appointment) {
@@ -203,6 +231,27 @@ async function onCancel(item: Appointment) {
   font-size: 16px;
   font-weight: 600;
   color: #323233;
+}
+
+.status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.status.warning {
+  color: #ff976a;
+  background: #fff7f0;
+}
+
+.status.success {
+  color: #07c160;
+  background: #edfff3;
+}
+
+.status.danger {
+  color: #ee0a24;
+  background: #fff0f0;
 }
 
 .card-body {
