@@ -51,10 +51,17 @@
       <div class="table-wrap">
         <el-table v-loading="loading" :data="tableData" border stripe>
           <el-table-column prop="id" label="ID" width="70" />
-          <el-table-column prop="date" label="预约日期" width="110" />
-          <el-table-column prop="time" label="时间" width="80" />
+          <el-table-column prop="phone" label="联系电话" width="130">
+            <template #default="{ row }">
+              <a :href="`tel:${row.phone}`" class="phone-link">{{ row.phone }}</a>
+            </template>
+          </el-table-column>
+          <el-table-column prop="date" label="预约日期" width="180">
+            <template #default="{ row }">
+              {{ row.date + ' ' + row.time }}
+            </template>
+          </el-table-column>
           <el-table-column prop="count" label="人数" width="70" align="center" />
-          <el-table-column prop="phone" label="联系电话" width="130" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-tag :type="statusTagType(row.status)" size="small">
@@ -262,6 +269,11 @@ onMounted(fetchData);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.phone-link {
+  color: var(--el-color-primary);
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {
