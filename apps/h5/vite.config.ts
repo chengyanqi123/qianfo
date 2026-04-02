@@ -22,8 +22,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        // target: 'http://192.168.5.102:10011',
+        target: 'https://qianfo.chengyanqi.com',
         changeOrigin: true,
+        // rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },
