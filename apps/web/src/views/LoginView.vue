@@ -34,7 +34,6 @@
 import { ref, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { FormInstance, FormRules } from 'element-plus';
-import { ElMessage } from 'element-plus';
 import { User, Lock } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { login } from '@/api/auth';
@@ -44,8 +43,6 @@ const route = useRoute();
 const auth = useAuthStore();
 
 const formRef = ref<FormInstance>();
-const loading = ref(false);
-
 const form = reactive({ username: '', password: '' });
 
 const rules: FormRules = {
@@ -55,18 +52,11 @@ const rules: FormRules = {
 
 async function onSubmit() {
   await formRef.value?.validate();
-  loading.value = true;
-  try {
-    const result = await login(form);
-    auth.setToken(result.token);
-    auth.setUser(result.user);
-    const redirect = (route.query.redirect as string) || '/';
-    router.replace(redirect);
-  } catch (e: any) {
-    ElMessage.error(e.message || '登录失败');
-  } finally {
-    loading.value = false;
-  }
+  const result = await login(form);
+  auth.setToken(result.token);
+  auth.setUser(result.user);
+  const redirect = (route.query.redirect as string) || '/';
+  router.replace(redirect);
 }
 </script>
 

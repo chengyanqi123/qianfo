@@ -24,12 +24,12 @@ request.interceptors.request.use((config) => {
 
 request.interceptors.response.use(
   (response) => {
+    closeLoading();
     const res = response.data;
     if (res.code !== 0) {
       ElMessage.error(res.message || '请求失败');
       return Promise.reject(new Error(res.message || '请求失败'));
     }
-    closeLoading();
     return res.data;
   },
   (error) => {
@@ -39,7 +39,7 @@ request.interceptors.response.use(
       return Promise.resolve(null);
     }
     const message = error.response?.data?.message || error.message || '网络错误';
-    if (error.response?.status === 401) {
+    if (error?.status === 401 || error.response.status === 401 || error.response?.data?.code === 401) {
       const auth = useAuthStore();
       ElMessageBox.alert('登录已过期，为了您的账户安全，请重新登录！', '提示', {
         confirmButtonText: '确定',

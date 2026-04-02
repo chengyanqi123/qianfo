@@ -78,15 +78,26 @@
                 {{ data.day.split('-').pop() }}
               </div>
               <!-- 限流数量 -->
-              <div class="cell-item error" v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1">
+              <div
+                class="cell-item"
+                :class="{ [tipTextMap.limit.type]: true }"
+                v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1"
+              >
+                {{ isMobile ? '' : tipTextMap.limit.shortText }}
                 {{ daliys[data?.day]?.limit ?? setting.totalLimit }}
               </div>
               <!-- 已预约数量 -->
-              <div class="cell-item success" v-if="daliys[data?.day]?.confirmed">
+              <div class="cell-item" :class="{ [tipTextMap.confirmed.type]: true }" v-if="daliys[data?.day]?.confirmed">
+                {{ isMobile ? '' : tipTextMap.confirmed.shortText }}
                 {{ daliys[data?.day]?.confirmed ?? 0 }}
               </div>
               <!-- 剩余数量 -->
-              <div class="cell-item warning" v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1">
+              <div
+                class="cell-item"
+                :class="{ [tipTextMap.remaining.type]: true }"
+                v-if="(daliys[data?.day]?.limit ?? setting.totalLimit) !== -1"
+              >
+                {{ isMobile ? '' : tipTextMap.remaining.shortText }}
                 {{ daliys[data?.day]?.remaining ?? 0 }}
               </div>
             </template>
@@ -94,13 +105,14 @@
         </template>
       </el-calendar>
       <el-space class="tip-dots" size="large">
-        <div class="dot text-color">日期</div>
-        <div class="dot error">限流数量</div>
-        <div class="dot success">已预约数量</div>
-        <div class="dot warning">剩余数量</div>
+        <div class="dot" :class="{ [tipTextMap.day.type]: true }">{{ tipTextMap.day.text }}</div>
+        <div class="dot" :class="{ [tipTextMap.limit.type]: true }">{{ tipTextMap.limit.text }}</div>
+        <div class="dot" :class="{ [tipTextMap.confirmed.type]: true }">{{ tipTextMap.confirmed.text }}</div>
+        <div class="dot" :class="{ [tipTextMap.remaining.type]: true }">{{ tipTextMap.remaining.text }}</div>
       </el-space>
     </TitleWarp>
 
+    <!-- 日期限流设置弹窗 -->
     <el-dialog destroy-on-close align-center v-model="dialogFormVisible" title="设置日期限流" width="80%">
       <el-form ref="daliyLimitForm" :model="form">
         <el-form-item label="日期" label-width="80px">
@@ -122,15 +134,38 @@
 import { ref } from 'vue';
 import TitleWarp from '@/components/TitleWarp.vue';
 import * as Apis from '@/api/setting';
+import { useIsMobile } from '@/composables/useIsMobile';
 import { dayjs, type CalendarDateType, type CalendarInstance } from 'element-plus';
 import { debounce } from 'lodash-es';
 
+const { isMobile } = useIsMobile();
 const calendar = ref<CalendarInstance>();
 const selectDate = (val: CalendarDateType) => {
   if (!calendar.value) return;
   calendar.value.selectDate(val);
 };
 
+const tipTextMap = {
+  day: {
+    text: '日期',
+    type: 'text-color',
+  },
+  limit: {
+    text: '限流数量',
+    shortText: '限流',
+    type: 'warning',
+  },
+  confirmed: {
+    text: '已预约数量',
+    shortText: '已预约',
+    type: 'success',
+  },
+  remaining: {
+    text: '剩余数量',
+    shortText: '剩余',
+    type: 'error',
+  },
+};
 const limitInputProps = {
   step: 1,
   stepStrictly: true,
