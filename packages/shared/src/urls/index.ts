@@ -6,6 +6,8 @@ export const AUTH_H5_LOGIN = '/auth/h5/login';
 export const APPOINTMENTS = '/appointments';
 export const APPOINTMENTS_HISTORY = '/appointments/history';
 export const appointmentStatusUrl = (id: number) => `/appointments/${id}/status`;
+export const appointments_write_off = (id: number) => `/appointments/${id}/verify`;
+export const appointments_status = (id: number) => `/appointments/${id}/status`;
 
 // Users
 export const USERS = '/users';

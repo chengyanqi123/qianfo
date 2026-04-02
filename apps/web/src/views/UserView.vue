@@ -33,7 +33,8 @@
       <div class="table-wrap">
         <el-table v-loading="loading" :data="tableData" border stripe>
           <el-table-column prop="id" label="ID" width="70" />
-          <el-table-column prop="username" label="用户名" min-width="120" />
+          <el-table-column prop="username" label="账号" min-width="120" />
+          <el-table-column prop="nickname" label="昵称" min-width="120" />
           <el-table-column label="角色" width="100">
             <template #default="{ row }">
               <el-tag :type="row.role === 'admin' ? 'danger' : 'info'" size="small">

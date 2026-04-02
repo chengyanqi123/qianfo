@@ -1,6 +1,6 @@
 import { request, isMock } from './request';
 import type { Appointment, AppointmentStatus, PageResult } from '@qianfo/shared';
-import { APPOINTMENTS, appointmentStatusUrl } from '@qianfo/shared';
+import { APPOINTMENTS, appointments_write_off, appointmentStatusUrl } from '@qianfo/shared';
 
 export interface AppointmentFilter {
   page: number;
@@ -50,4 +50,8 @@ export async function updateAppointmentStatus(id: number, status: AppointmentSta
     return;
   }
   return request.patch(appointmentStatusUrl(id), { status });
+}
+
+export async function appointmentsWriteOff(id: number): Promise<void> {
+  return request.post(appointments_write_off(id));
 }
