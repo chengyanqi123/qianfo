@@ -9,14 +9,12 @@ on:
       - 'packages/shared/**'
 
 jobs:
-  detect-changes:
+  deploy:
     runs-on: ubuntu-latest
-    outputs:
-      h5: ${{ steps.changes.outputs.h5 }}
-      web: ${{ steps.changes.outputs.web }}
-      shared: ${{ steps.changes.outputs.shared }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -26,32 +24,20 @@ jobs:
           CHANGES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
           echo "Changed files:"
           echo "$CHANGES"
-          echo "---"
 
-          H5_CHANGED=$(echo "$CHANGES" | grep -q "apps/h5/" && echo "true" || echo "false")
-          WEB_CHANGED=$(echo "$CHANGES" | grep -q "apps/web/" && echo "true" || echo "false")
-          SHARED_CHANGED=$(echo "$CHANGES" | grep -q "packages/shared/" && echo "true" || echo "false")
+          SHARED=$(echo "$CHANGES" | grep -q "packages/shared/" && echo "true" || echo "false")
+          H5=$(echo "$CHANGES" | grep -q "apps/h5/" && echo "true" || echo "false")
+          WEB=$(echo "$CHANGES" | grep -q "apps/web/" && echo "true" || echo "false")
 
-          echo "H5 changed: $H5_CHANGED"
-          echo "Web changed: $WEB_CHANGED"
-          echo "Shared changed: $SHARED_CHANGED"
+          # shared 变了，h5 和 web 都需要重新打包
+          DEPLOY_H5=$( [ "$H5" = "true" ] || [ "$SHARED" = "true" ] && echo "true" || echo "false" )
+          DEPLOY_WEB=$( [ "$WEB" = "true" ] || [ "$SHARED" = "true" ] && echo "true" || echo "false" )
 
-          echo "h5=$H5_CHANGED" >> $GITHUB_OUTPUT
-          echo "web=$WEB_CHANGED" >> $GITHUB_OUTPUT
-          echo "shared=$SHARED_CHANGED" >> $GITHUB_OUTPUT
-
-  deploy-h5:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.h5 == 'true' || needs.detect-changes.outputs.shared == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+          echo "deploy_h5=$DEPLOY_H5" >> $GITHUB_OUTPUT
+          echo "deploy_web=$DEPLOY_WEB" >> $GITHUB_OUTPUT
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -62,12 +48,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build shared package
-        run: pnpm --filter=@qianfo/shared build
-
-      - name: Build H5 app
-        run: pnpm --filter=h5 build
+      - name: Build apps in parallel
+        run: |
+          pids=()
+          if [ "$DEPLOY_H5" = "true" ]; then
+            echo "Building H5..."
+            pnpm run build:h5 &
+            pids+=($!)
+          fi
+          if [ "$DEPLOY_WEB" = "true" ]; then
+            echo "Building Web..."
+            pnpm run build:web &
+            pids+=($!)
+          fi
+          # 等待所有构建完成，任一失败则整体失败
+          for pid in "${pids[@]}"; do
+            wait "$pid" || exit 1
+          done
         env:
+          DEPLOY_H5: ${{ steps.changes.outputs.deploy_h5 }}
+          DEPLOY_WEB: ${{ steps.changes.outputs.deploy_web }}
           VITE_MOCK: 'false'
           VITE_WX_APP_ID: ${{ secrets.APP_ID }}
           VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
@@ -75,70 +75,37 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" | sed 's/\\n/\n/g' > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-          echo "Key starts with: $(head -1 ~/.ssh/id_rsa)"
-          echo "Key lines: $(wc -l < ~/.ssh/id_rsa)"
 
-      - name: Deploy H5 app to server
+      - name: Deploy to server
         run: |
-          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
-            ./apps/h5/dist/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/h5
+          pids=()
+          if [ "$DEPLOY_H5" = "true" ]; then
+            echo "Deploying H5..."
+            rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
+              ./apps/h5/dist/ \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/h5 &
+            pids+=($!)
+          fi
+          if [ "$DEPLOY_WEB" = "true" ]; then
+            echo "Deploying Web..."
+            rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
+              ./apps/web/dist/ \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/web &
+            pids+=($!)
+          fi
+          for pid in "${pids[@]}"; do
+            wait "$pid" || exit 1
+          done
+        env:
+          DEPLOY_H5: ${{ steps.changes.outputs.deploy_h5 }}
+          DEPLOY_WEB: ${{ steps.changes.outputs.deploy_web }}
 
-  deploy-web:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.web == 'true' || needs.detect-changes.outputs.shared == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.11.0'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build shared package
-        run: pnpm --filter=@qianfo/shared build
-
-      - name: Build Web app
-        run: pnpm --filter=web build
-
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" | sed 's/\\n/\n/g' > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-          echo "Key starts with: $(head -1 ~/.ssh/id_rsa)"
-          echo "Key lines: $(wc -l < ~/.ssh/id_rsa)"
-
-      - name: Deploy Web app to server
-        run: |
-          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
-            ./apps/web/dist/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/web
-
-  notify:
-    needs: [deploy-h5, deploy-web]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Deployment summary
+      - name: Summary
+        if: always()
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- H5 deployment: ${{ needs.deploy-h5.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Web deployment: ${{ needs.deploy-web.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- H5: ${{ steps.changes.outputs.deploy_h5 == 'true' && '✅ deployed' || '⏭️ skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Web: ${{ steps.changes.outputs.deploy_web == 'true' && '✅ deployed' || '⏭️ skipped' }}" >> $GITHUB_STEP_SUMMARY

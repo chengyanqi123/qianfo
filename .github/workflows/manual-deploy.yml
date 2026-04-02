@@ -21,9 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,18 +32,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build shared package
-        run: pnpm --filter=@qianfo/shared build
-
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" | sed 's/\\n/\n/g' > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-          echo "Key starts with: $(head -1 ~/.ssh/id_rsa)"
-          echo "Key lines: $(wc -l < ~/.ssh/id_rsa)"
 
       - name: Build and deploy H5
         if: github.event.inputs.app == 'h5' || github.event.inputs.app == 'all'
@@ -54,7 +46,7 @@ jobs:
           VITE_WX_APP_ID: ${{ secrets.APP_ID }}
           VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
         run: |
-          pnpm --filter=h5 build
+          pnpm run build:h5
           rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
             ./apps/h5/dist/ \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/h5
@@ -62,7 +54,7 @@ jobs:
       - name: Build and deploy Web
         if: github.event.inputs.app == 'web' || github.event.inputs.app == 'all'
         run: |
-          pnpm --filter=web build
+          pnpm run build:web
           rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
             ./apps/web/dist/ \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/web
