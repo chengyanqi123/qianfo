@@ -19,3 +19,12 @@ export async function login(dto: LoginDto): Promise<LoginResult> {
   }
   return request.post(AUTH_LOGIN, dto);
 }
+
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  if (isMock) {
+    await new Promise((r) => setTimeout(r, 500));
+    if (oldPassword !== '123456') throw new Error('原密码错误');
+    return;
+  }
+  return request.post('/auth/change-password', { oldPassword, newPassword });
+}

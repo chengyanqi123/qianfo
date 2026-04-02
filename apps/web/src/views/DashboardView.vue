@@ -19,13 +19,13 @@
 
     <!-- 图表区 -->
     <el-row :gutter="16" class="chart-row">
-      <el-col :xs="24" :md="14">
+      <el-col :xs="24" :md="16">
         <el-card shadow="never">
           <template #header>近 7 天预约数量</template>
           <v-chart :option="barOption" :loading="chartLoading" style="height: 280px" autoresize />
         </el-card>
       </el-col>
-      <el-col :xs="24" :md="10">
+      <el-col :xs="24" :md="8">
         <el-card shadow="never">
           <template #header>预约状态分布</template>
           <v-chart :option="pieOption" :loading="chartLoading" style="height: 280px" autoresize />
@@ -173,6 +173,10 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--el-text-color-secondary);
   margin-top: 4px;
+}
+
+.chart-row {
+  row-gap: 16px;
 }
 
 .chart-row :deep(.el-card__body) {

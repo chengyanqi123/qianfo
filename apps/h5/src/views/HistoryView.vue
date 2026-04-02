@@ -33,6 +33,16 @@
               <van-button
                 v-if="item.status === 'pending'"
                 size="small"
+                type="primary"
+                plain
+                round
+                @click="showQrCode(item)"
+              >
+                核销
+              </van-button>
+              <van-button
+                v-if="item.status === 'pending'"
+                size="small"
                 type="danger"
                 plain
                 round
@@ -53,6 +63,14 @@
         </div>
       </div>
     </van-pull-refresh>
+
+    <!-- 核销二维码弹窗 -->
+    <van-popup v-model:show="qrVisible" round closeable style="padding: 32px">
+      <div class="qr-container">
+        <p class="qr-title">核销二维码</p>
+        <img v-if="qrDataUrl" :src="qrDataUrl" alt="二维码" class="qr-image" />
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -61,6 +79,7 @@ import { ref, onMounted } from 'vue';
 import { showFailToast, showSuccessToast, showConfirmDialog } from 'vant';
 import { getAppointmentHistory, cancelAppointment } from '@/api/appointment';
 import type { Appointment, AppointmentStatus } from '@qianfo/shared';
+import QRCode from 'qrcode';
 
 const list = ref<Appointment[]>([]);
 const loading = ref(false);
@@ -70,6 +89,8 @@ const pageSize = 10;
 const total = ref(0);
 const noMore = ref(false);
 const cancellingId = ref<number | null>(null);
+const qrVisible = ref(false);
+const qrDataUrl = ref('');
 
 const statusText = (status: AppointmentStatus) => {
   const map: Record<AppointmentStatus, string> = {
@@ -125,6 +146,12 @@ function loadMore() {
 }
 
 onMounted(() => fetchList(true));
+
+async function showQrCode(item: Appointment) {
+  const content = JSON.stringify({ id: item.id, date: item.date, time: item.time });
+  qrDataUrl.value = await QRCode.toDataURL(content, { width: 250, margin: 2 });
+  qrVisible.value = true;
+}
 
 async function onCancel(item: Appointment) {
   try {
@@ -222,5 +249,23 @@ async function onCancel(item: Appointment) {
 
 .buttom-text {
   padding: 16px 0 32px 0;
+}
+
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qr-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #323233;
+}
+
+.qr-image {
+  width: 250px;
+  height: 250px;
 }
 </style>

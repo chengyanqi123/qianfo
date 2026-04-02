@@ -33,7 +33,7 @@ export default defineConfig({
         // Auto register icon components
         // 自动注册图标组件
         IconsResolver({
-          enabledCollections: ['ep'],
+          enabledCollections: ['ep', 'streamline', 'si'],
         }),
         // Auto register Element Plus components
         // 自动导入 Element Plus 组件
