@@ -241,6 +241,7 @@ function formatter(day: any) {
     const [h, m] = [dayjs().hour(), dayjs().minute()];
     if (h > eh || h < sh || (h === eh && m > em) || (h === sh && m < sm)) {
       day.type = 'disabled';
+      day.bottomInfo = '已歇业';
     }
   }
 
