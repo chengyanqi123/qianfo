@@ -28,6 +28,7 @@
         </div>
         <template #dropdown>
           <el-dropdown-menu>
+            <el-dropdown-item command="changePassword" :icon="EditPen">修改密码</el-dropdown-item>
             <el-dropdown-item command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -39,7 +40,7 @@
 <script setup lang="ts">
 import { computed, CSSProperties } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Expand, Fold, Sunny, Moon, UserFilled, SwitchButton, ArrowDown } from '@element-plus/icons-vue';
+import { Expand, Fold, Sunny, Moon, UserFilled, SwitchButton, ArrowDown, EditPen } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/composables/useTheme';
@@ -66,6 +67,10 @@ async function handleCommand(cmd: string) {
     });
     auth.logout();
     router.replace('/login');
+    return;
+  }
+  if (cmd === 'changePassword') {
+    // Handle change password logic
   }
 }
 </script>
