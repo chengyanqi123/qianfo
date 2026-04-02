@@ -1,0 +1,138 @@
+name: Auto Deploy to Server
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/h5/**'
+      - 'apps/web/**'
+      - 'packages/shared/**'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      h5: ${{ steps.changes.outputs.h5 }}
+      web: ${{ steps.changes.outputs.web }}
+      shared: ${{ steps.changes.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        run: |
+          CHANGES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+          echo "Changed files:"
+          echo "$CHANGES"
+          echo "---"
+
+          H5_CHANGED=$(echo "$CHANGES" | grep -q "apps/h5/" && echo "true" || echo "false")
+          WEB_CHANGED=$(echo "$CHANGES" | grep -q "apps/web/" && echo "true" || echo "false")
+          SHARED_CHANGED=$(echo "$CHANGES" | grep -q "packages/shared/" && echo "true" || echo "false")
+
+          echo "H5 changed: $H5_CHANGED"
+          echo "Web changed: $WEB_CHANGED"
+          echo "Shared changed: $SHARED_CHANGED"
+
+          echo "h5=$H5_CHANGED" >> $GITHUB_OUTPUT
+          echo "web=$WEB_CHANGED" >> $GITHUB_OUTPUT
+          echo "shared=$SHARED_CHANGED" >> $GITHUB_OUTPUT
+
+  deploy-h5:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.h5 == 'true' || needs.detect-changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter=@qianfo/shared build
+
+      - name: Build H5 app
+        run: pnpm --filter=h5 build
+        env:
+          VITE_MOCK: 'false'
+          VITE_WX_APP_ID: ${{ secrets.APP_ID }}
+          VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy H5 app to server
+        run: |
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
+            ./apps/h5/dist/ \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/h5
+
+  deploy-web:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.web == 'true' || needs.detect-changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter=@qianfo/shared build
+
+      - name: Build Web app
+        run: pnpm --filter=web build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Web app to server
+        run: |
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
+            ./apps/web/dist/ \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/web
+
+  notify:
+    needs: [deploy-h5, deploy-web]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- H5 deployment: ${{ needs.deploy-h5.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Web deployment: ${{ needs.deploy-web.result }}" >> $GITHUB_STEP_SUMMARY

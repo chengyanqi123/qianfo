@@ -1,0 +1,65 @@
+name: Manual Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: '选择要部署的应用'
+        required: true
+        type: choice
+        options:
+          - h5
+          - web
+          - all
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter=@qianfo/shared build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Build and deploy H5
+        if: github.event.inputs.app == 'h5' || github.event.inputs.app == 'all'
+        env:
+          VITE_MOCK: 'false'
+          VITE_WX_APP_ID: ${{ secrets.APP_ID }}
+          VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
+        run: |
+          pnpm --filter=h5 build
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
+            ./apps/h5/dist/ \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/h5
+
+      - name: Build and deploy Web
+        if: github.event.inputs.app == 'web' || github.event.inputs.app == 'all'
+        run: |
+          pnpm --filter=web build
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
+            ./apps/web/dist/ \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/web
