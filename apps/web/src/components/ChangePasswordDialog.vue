@@ -23,10 +23,14 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useRouter } from 'vue-router';
 import { changePassword } from '@/api/auth';
+import { useAuthStore } from '@/stores/auth';
 
 const visible = defineModel<boolean>({ required: true });
+const router = useRouter();
+const auth = useAuthStore();
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 
@@ -66,8 +70,17 @@ async function onSubmit() {
   loading.value = true;
   try {
     await changePassword(form.oldPassword, form.newPassword);
-    ElMessage.success('密码修改成功');
     visible.value = false;
+    await ElMessageBox.confirm('密码修改成功，请重新登录', '提示', {
+      confirmButtonText: '重新登录',
+      showCancelButton: false,
+      closeOnClickModal: false,
+      closeOnPressEscape: false,
+      showClose: false,
+      type: 'success',
+    });
+    auth.logout();
+    router.replace('/login');
   } catch {
     // 错误由 axios 拦截器处理
   } finally {

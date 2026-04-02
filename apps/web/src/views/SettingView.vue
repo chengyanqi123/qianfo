@@ -187,7 +187,9 @@ const form = ref({
 });
 
 const limitChange: any = debounce(function (value: number) {
-  Apis.setDefaultLimit({ capacity: value });
+  Apis.setDefaultLimit({ capacity: value }).then(() => {
+    getReserve();
+  });
 }, 300);
 
 const getReserve = debounce(function (options?: Parameters<typeof Apis.getLimitByDate>[1]) {
