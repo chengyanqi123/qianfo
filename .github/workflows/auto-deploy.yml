@@ -75,9 +75,12 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" | sed 's/\\n/\n/g' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          echo "Key starts with: $(head -1 ~/.ssh/id_rsa)"
+          echo "Key lines: $(wc -l < ~/.ssh/id_rsa)"
 
       - name: Deploy H5 app to server
         run: |
@@ -116,9 +119,12 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" | sed 's/\\n/\n/g' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          echo "Key starts with: $(head -1 ~/.ssh/id_rsa)"
+          echo "Key lines: $(wc -l < ~/.ssh/id_rsa)"
 
       - name: Deploy Web app to server
         run: |
