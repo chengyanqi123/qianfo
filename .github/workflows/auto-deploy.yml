@@ -84,7 +84,7 @@ jobs:
           pids=()
           if [ "$DEPLOY_H5" = "true" ]; then
             echo "Deploying H5..."
-            rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
+            rsync -avz --delete --exclude='MP_verify_*' -e "ssh -i ~/.ssh/id_rsa" \
               ./apps/h5/dist/ \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/h5 &
             pids+=($!)
