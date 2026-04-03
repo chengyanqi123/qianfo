@@ -48,17 +48,6 @@ pnpm --filter @qianfo/shared add <package>
 
 - **pre-commit**：通过 husky + lint-staged 自动对暂存的 `*.{js,ts,jsx,tsx,vue}` 文件执行 `eslint --fix`
 
-## Mock 数据
-
-两个应用均通过 `.env` 中的 `VITE_MOCK=true` 控制 mock 模式。
-Mock 逻辑写在各自的 `src/api/*.ts` 文件中，通过 `isMock` 分支返回本地假数据，**无需启动后端即可运行和预览页面**。
-
-关闭 mock 时，将 `VITE_MOCK=false`，axios 会向 `VITE_API_BASE_URL` 发起真实请求。
-
-### 演示账号（Mock 模式）
-
-- 账号：`admin`，密码：`123456`
-
 ## 架构说明
 
 ### shared（`packages/shared/src/`）

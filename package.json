@@ -15,12 +15,12 @@
     "build": "pnpm --filter @qianfo/shared build || true && pnpm --filter h5 build && pnpm --filter web build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepare": "husky",
     "check:type": "pnpm --filter h5 exec vue-tsc && pnpm --filter web exec vue-tsc",
     "check:type:h5": "pnpm --filter h5 exec vue-tsc",
     "check:type:web": "pnpm --filter web exec vue-tsc",
     "check:style": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepare": "husky"
   },
   "dependencies": {
     "dayjs": "^1.11.20",

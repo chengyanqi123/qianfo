@@ -22,21 +22,22 @@
             @keyup.enter="onSubmit"
           />
         </el-form-item>
+        <el-checkbox v-model="rememberMe" class="remember-me">记住密码</el-checkbox>
         <el-button type="primary" size="large" :loading="loading" class="login-btn" @click="onSubmit"> 登录 </el-button>
       </el-form>
-
-      <p class="hint">演示账号：admin / 123456</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { FormInstance, FormRules } from 'element-plus';
 import { User, Lock } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { login } from '@/api/auth';
+
+const REMEMBER_KEY = 'qianfo_remember';
 
 const router = useRouter();
 const route = useRoute();
@@ -44,12 +45,27 @@ const auth = useAuthStore();
 
 const formRef = ref<FormInstance>();
 const loading = ref(false);
+const rememberMe = ref(false);
 const form = reactive({ username: '', password: '' });
 
 const rules: FormRules = {
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 };
+
+onMounted(() => {
+  const saved = localStorage.getItem(REMEMBER_KEY);
+  if (saved) {
+    try {
+      const { username, password } = JSON.parse(saved);
+      form.username = username;
+      form.password = password;
+      rememberMe.value = true;
+    } catch {
+      localStorage.removeItem(REMEMBER_KEY);
+    }
+  }
+});
 
 async function onSubmit() {
   await formRef.value?.validate();
@@ -58,6 +74,13 @@ async function onSubmit() {
     const result = await login(form);
     auth.setToken(result.token);
     auth.setUser(result.user);
+
+    if (rememberMe.value) {
+      localStorage.setItem(REMEMBER_KEY, JSON.stringify({ username: form.username, password: form.password }));
+    } else {
+      localStorage.removeItem(REMEMBER_KEY);
+    }
+
     const redirect = (route.query.redirect as string) || '/';
     router.replace(redirect);
   } finally {
@@ -127,10 +150,9 @@ async function onSubmit() {
   margin-top: 8px;
 }
 
-.hint {
-  text-align: center;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  margin-top: 16px;
+.remember-me {
+  margin-bottom: 8px;
+  --el-checkbox-text-color: var(--el-text-color-secondary);
+  --el-checkbox-font-size: 13px;
 }
 </style>

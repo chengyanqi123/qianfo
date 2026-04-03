@@ -42,7 +42,6 @@ jobs:
       - name: Build and deploy H5
         if: github.event.inputs.app == 'h5' || github.event.inputs.app == 'all'
         env:
-          VITE_MOCK: 'false'
           VITE_WX_APP_ID: ${{ secrets.APP_ID }}
           VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
         run: |
