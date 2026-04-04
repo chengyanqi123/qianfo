@@ -76,40 +76,36 @@
           <el-table-column label="操作" :width="isMobile ? '56' : '160'" fixed="right" align="center">
             <template #default="{ row }">
               <template v-if="isMobile">
-                <el-dropdown placement="top-start">
-                  <div class="flex-center">
-                    <el-icon><MoreFilled /></el-icon>
-                  </div>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item>
-                        <el-button
-                          v-if="row.status === 'pending'"
-                          link
-                          type="primary"
-                          size="small"
-                          plain
-                          @click="changeStatus(row, 'confirmed')"
-                        >
-                          确认
-                        </el-button>
-                      </el-dropdown-item>
-                      <el-dropdown-item>
-                        <el-button
-                          v-if="row.status !== 'cancelled'"
-                          link
-                          type="danger"
-                          size="small"
-                          plain
-                          @click="changeStatus(row, 'cancelled')"
-                        >
-                          取消
-                        </el-button>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
+                <template v-if="row.status !== 'cancelled'">
+                  <el-dropdown placement="top-start">
+                    <div class="flex-center">
+                      <el-icon><MoreFilled /></el-icon>
+                    </div>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item>
+                          <el-button
+                            v-if="row.status === 'pending'"
+                            link
+                            type="primary"
+                            size="small"
+                            plain
+                            @click="changeStatus(row, 'confirmed')"
+                          >
+                            确认
+                          </el-button>
+                        </el-dropdown-item>
+                        <el-dropdown-item>
+                          <el-button link type="danger" size="small" plain @click="changeStatus(row, 'cancelled')">
+                            取消
+                          </el-button>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </template>
               </template>
+
               <template v-else>
                 <el-button
                   v-if="row.status === 'pending'"
@@ -152,18 +148,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Refresh } from '@element-plus/icons-vue';
-import { getAppointments, updateAppointmentStatus } from '@/api/appointment';
-import type { Appointment, AppointmentStatus } from '@qianfo/shared';
-import { useIsMobile } from '@/composables/useIsMobile';
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Refresh } from '@element-plus/icons-vue'
+import { getAppointments, updateAppointmentStatus } from '@/api/appointment'
+import type { Appointment, AppointmentStatus } from '@qianfo/shared'
+import { useIsMobile } from '@/composables/useIsMobile'
 
-const { isMobile } = useIsMobile();
-const loading = ref(false);
-const tableData = ref<Appointment[]>([]);
-const total = ref(0);
-const dateRange = ref<[string, string] | null>(null);
+const { isMobile } = useIsMobile()
+const loading = ref(false)
+const tableData = ref<Appointment[]>([])
+const total = ref(0)
+const dateRange = ref<[string, string] | null>(null)
 
 const filter = reactive({
   page: 1,
@@ -172,41 +168,53 @@ const filter = reactive({
   status: '' as AppointmentStatus | '',
   dateStart: '',
   dateEnd: '',
-});
+})
 
-const statusText = (s: AppointmentStatus) => ({ pending: '待确认', confirmed: '已确认', cancelled: '已取消' })[s];
-
-const statusTagType = (s: AppointmentStatus) =>
-  (({ pending: 'warning', confirmed: 'success', cancelled: 'danger' }) as const)[s];
+const STATUS_MAP = {
+  pending: {
+    text: '待确认',
+    tag: 'warning',
+  },
+  confirmed: {
+    text: '已确认',
+    tag: 'success',
+  },
+  cancelled: {
+    text: '已取消',
+    tag: 'danger',
+  },
+} as const
+const statusText = (s: AppointmentStatus) => STATUS_MAP[s].text
+const statusTagType = (s: AppointmentStatus) => STATUS_MAP[s].tag
 
 function formatTime(str: string) {
-  return new Date(str).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-');
+  return new Date(str).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
 }
 
 async function fetchData() {
-  loading.value = true;
+  loading.value = true
   try {
-    filter.dateStart = dateRange.value?.[0] ?? '';
-    filter.dateEnd = dateRange.value?.[1] ?? '';
-    const res = await getAppointments(filter);
-    tableData.value = res.list;
-    total.value = res.total;
+    filter.dateStart = dateRange.value?.[0] ?? ''
+    filter.dateEnd = dateRange.value?.[1] ?? ''
+    const res = await getAppointments(filter)
+    tableData.value = res.list
+    total.value = res.total
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 function onSearch() {
-  filter.page = 1;
-  fetchData();
+  filter.page = 1
+  fetchData()
 }
 
 function onReset() {
-  filter.phone = '';
-  filter.status = '';
-  dateRange.value = null;
-  filter.page = 1;
-  fetchData();
+  filter.phone = ''
+  filter.status = ''
+  dateRange.value = null
+  filter.page = 1
+  fetchData()
 }
 
 async function changeStatus(row: Appointment, status: AppointmentStatus) {
@@ -214,20 +222,20 @@ async function changeStatus(row: Appointment, status: AppointmentStatus) {
     confirmed: '确认',
     cancelled: '取消',
     pending: '重置为待确认',
-  };
+  }
   await ElMessageBox.confirm(`确定要${labels[status]}该预约吗？`, '操作确认', {
     type: 'warning',
-  });
+  })
   try {
-    await updateAppointmentStatus(row.id, status);
-    row.status = status;
-    ElMessage.success('操作成功');
+    await updateAppointmentStatus(row.id, status)
+    row.status = status
+    ElMessage.success('操作成功')
   } catch (e: any) {
-    ElMessage.error(e.message);
+    ElMessage.error(e.message)
   }
 }
 
-onMounted(fetchData);
+onMounted(fetchData)
 </script>
 
 <style scoped>

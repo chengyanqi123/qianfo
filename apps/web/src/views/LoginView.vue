@@ -3,7 +3,7 @@
     <div class="login-card">
       <div class="login-header">
         <el-icon class="login-logo"><Calendar /></el-icon>
-        <h1 class="login-title">预约管理系统</h1>
+        <h1 class="login-title">千佛摆渡车—预约管理系统</h1>
         <p class="login-subtitle">请登录您的账号</p>
       </div>
 
@@ -30,61 +30,61 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import type { FormInstance, FormRules } from 'element-plus';
-import { User, Lock } from '@element-plus/icons-vue';
-import { useAuthStore } from '@/stores/auth';
-import { login } from '@/api/auth';
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import type { FormInstance, FormRules } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
+import { useAuthStore } from '@/stores/auth'
+import { login } from '@/api/auth'
 
-const REMEMBER_KEY = 'qianfo_remember';
+const REMEMBER_KEY = 'qianfo_remember'
 
-const router = useRouter();
-const route = useRoute();
-const auth = useAuthStore();
+const router = useRouter()
+const route = useRoute()
 
-const formRef = ref<FormInstance>();
-const loading = ref(false);
-const rememberMe = ref(false);
-const form = reactive({ username: '', password: '' });
+const formRef = ref<FormInstance>()
+const loading = ref(false)
+const rememberMe = ref(false)
+const form = reactive({ username: '', password: '' })
 
 const rules: FormRules = {
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-};
+}
 
 onMounted(() => {
-  const saved = localStorage.getItem(REMEMBER_KEY);
+  const saved = localStorage.getItem(REMEMBER_KEY)
   if (saved) {
     try {
-      const { username, password } = JSON.parse(saved);
-      form.username = username;
-      form.password = password;
-      rememberMe.value = true;
+      const { username, password } = JSON.parse(saved)
+      form.username = username
+      form.password = password
+      rememberMe.value = true
     } catch {
-      localStorage.removeItem(REMEMBER_KEY);
+      localStorage.removeItem(REMEMBER_KEY)
     }
   }
-});
+})
 
 async function onSubmit() {
-  await formRef.value?.validate();
-  loading.value = true;
+  await formRef.value?.validate()
+  loading.value = true
   try {
-    const result = await login(form);
-    auth.setToken(result.token);
-    auth.setUser(result.user);
+    const auth = useAuthStore()
+    const result = await login(form)
+    auth.setToken(result.token)
+    auth.setUser(result.user)
 
     if (rememberMe.value) {
-      localStorage.setItem(REMEMBER_KEY, JSON.stringify({ username: form.username, password: form.password }));
+      localStorage.setItem(REMEMBER_KEY, JSON.stringify({ username: form.username, password: form.password }))
     } else {
-      localStorage.removeItem(REMEMBER_KEY);
+      localStorage.removeItem(REMEMBER_KEY)
     }
 
-    const redirect = (route.query.redirect as string) || '/';
-    router.replace(redirect);
+    const redirect = (route.query.redirect as string) || '/'
+    router.replace(redirect)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 </script>

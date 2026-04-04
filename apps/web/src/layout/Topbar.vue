@@ -28,7 +28,7 @@
 
       <el-dropdown @command="handleCommand">
         <div class="user-info">
-          <el-avatar :size="32" :icon="UserFilled" />
+          <el-avatar :size="32" v-bind="userAvatar" />
           <span v-if="!isMobile" class="username">{{ auth.user?.username ?? 'Admin' }}</span>
           <el-icon v-if="!isMobile"><ArrowDown /></el-icon>
         </div>
@@ -50,30 +50,37 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, CSSProperties } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { Expand, Fold, UserFilled, SwitchButton, ArrowDown, EditPen } from '@element-plus/icons-vue';
-import { ElMessageBox } from 'element-plus';
-import { useAuthStore } from '@/stores/auth';
-import { useTheme } from '@/composables/useTheme';
-import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue';
-import ScanDialog from '@/components/ScanDialog.vue';
+import { computed, ref, CSSProperties } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Expand, Fold, UserFilled, SwitchButton, ArrowDown, EditPen } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
+import { useTheme } from '@/composables/useTheme'
+import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue'
+import ScanDialog from '@/components/ScanDialog.vue'
 
-const props = defineProps<{ collapsed: boolean; isMobile: boolean }>();
-defineEmits<{ (e: 'toggle'): void }>();
+const props = defineProps<{ collapsed: boolean; isMobile: boolean }>()
+defineEmits<{ (e: 'toggle'): void }>()
 
-const auth = useAuthStore();
-const router = useRouter();
-const route = useRoute();
-const { isDark, toggleTheme } = useTheme();
+const auth = useAuthStore()
+const router = useRouter()
+const route = useRoute()
+const { isDark, toggleTheme } = useTheme()
+const userAvatar = computed(() => {
+  if (auth?.user?.avatar) {
+    return { src: auth?.user?.avatar }
+  } else {
+    return { icon: UserFilled }
+  }
+})
 
-const scanVisible = ref(false);
-const passwordVisible = ref(false);
-const dialogWidth = computed(() => (props.isMobile ? '90vw' : '40vw'));
-const currentTitle = computed(() => route.meta.title as string | undefined);
+const scanVisible = ref(false)
+const passwordVisible = ref(false)
+const dialogWidth = computed(() => (props.isMobile ? '90vw' : '40vw'))
+const currentTitle = computed(() => route.meta.title as string | undefined)
 const mobileButtonStyle: CSSProperties = {
   padding: '6px',
-};
+}
 
 async function handleCommand(cmd: string) {
   if (cmd === 'logout') {
@@ -81,13 +88,13 @@ async function handleCommand(cmd: string) {
       confirmButtonText: '确认',
       cancelButtonText: '取消',
       type: 'warning',
-    });
-    auth.logout();
-    router.replace('/login');
-    return;
+    })
+    auth.logout()
+    router.replace('/login')
+    return
   }
   if (cmd === 'changePassword') {
-    passwordVisible.value = true;
+    passwordVisible.value = true
   }
 }
 </script>

@@ -34,7 +34,7 @@
         <el-table v-loading="loading" :data="tableData" border stripe>
           <el-table-column prop="id" label="ID" width="70" />
           <el-table-column prop="username" label="账号" min-width="120" />
-          <el-table-column prop="nickname" label="昵称" min-width="120" />
+          <el-table-column prop="nickName" label="昵称" min-width="120" />
           <el-table-column label="角色" width="100">
             <template #default="{ row }">
               <el-tag :type="row.role === 'admin' ? 'danger' : 'info'" size="small">
@@ -66,52 +66,52 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
-import { Search, Refresh } from '@element-plus/icons-vue';
-import { getUsers } from '@/api/user';
-import type { User } from '@qianfo/shared';
-import { useIsMobile } from '@/composables/useIsMobile';
+import { ref, reactive, onMounted } from 'vue'
+import { Search, Refresh } from '@element-plus/icons-vue'
+import { getUsers } from '@/api/user'
+import type { User } from '@qianfo/shared'
+import { useIsMobile } from '@/composables/useIsMobile'
 
-const { isMobile } = useIsMobile();
-const loading = ref(false);
-const tableData = ref<User[]>([]);
-const total = ref(0);
+const { isMobile } = useIsMobile()
+const loading = ref(false)
+const tableData = ref<User[]>([])
+const total = ref(0)
 
 const filter = reactive({
   page: 1,
   pageSize: 10,
   username: '',
   phone: '',
-});
+})
 
 function formatTime(str: string) {
-  return new Date(str).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-');
+  return new Date(str).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
 }
 
 async function fetchData() {
-  loading.value = true;
+  loading.value = true
   try {
-    const res = await getUsers(filter);
-    tableData.value = res.list;
-    total.value = res.total;
+    const res = await getUsers(filter)
+    tableData.value = res.list
+    total.value = res.total
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 function onSearch() {
-  filter.page = 1;
-  fetchData();
+  filter.page = 1
+  fetchData()
 }
 
 function onReset() {
-  filter.username = '';
-  filter.phone = '';
-  filter.page = 1;
-  fetchData();
+  filter.username = ''
+  filter.phone = ''
+  filter.page = 1
+  fetchData()
 }
 
-onMounted(fetchData);
+onMounted(fetchData)
 </script>
 
 <style scoped>
