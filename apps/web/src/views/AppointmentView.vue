@@ -152,7 +152,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { getAppointments, updateAppointmentStatus } from '@/api/appointment'
-import type { Appointment, AppointmentStatus } from '@qianfo/shared'
+import { trackMonitorEvent, type Appointment, type AppointmentStatus } from '@qianfo/shared'
 import { useIsMobile } from '@/composables/useIsMobile'
 
 const { isMobile } = useIsMobile()
@@ -223,14 +223,40 @@ async function changeStatus(row: Appointment, status: AppointmentStatus) {
     cancelled: '取消',
     pending: '重置为待确认',
   }
+  const previousStatus = row.status
   await ElMessageBox.confirm(`确定要${labels[status]}该预约吗？`, '操作确认', {
     type: 'warning',
   })
   try {
     await updateAppointmentStatus(row.id, status)
     row.status = status
+    trackMonitorEvent('appointment_status_change', {
+      attributes: {
+        result: 'success',
+        from_status: previousStatus,
+        to_status: status,
+        appointment_count: row.count,
+      },
+      data: {
+        appointment_id: row.id,
+        date: row.date,
+        time: row.time,
+      },
+    })
     ElMessage.success('操作成功')
   } catch (e: any) {
+    trackMonitorEvent('appointment_status_change', {
+      attributes: {
+        result: 'failure',
+        from_status: previousStatus,
+        to_status: status,
+        appointment_count: row.count,
+      },
+      data: {
+        appointment_id: row.id,
+        reason: e?.message || 'unknown',
+      },
+    })
     ElMessage.error(e.message)
   }
 }

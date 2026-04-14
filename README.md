@@ -58,13 +58,40 @@ pnpm check:type  # TypeScript 类型检查
 VITE_API_BASE_URL=/api
 VITE_WX_APP_ID=your_wx_app_id
 VITE_SITE_ADDRESS=https://your-domain.com/h5
+VITE_SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+VITE_SENTRY_ENVIRONMENT=production
+VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
+VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE=0
+VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=1
+
+SENTRY_ORG=your-org
+SENTRY_PROJECT=your-h5-project
+SENTRY_AUTH_TOKEN=your-auth-token
+SENTRY_RELEASE=your-release
 ```
 
 **管理端** (`apps/web/.env`)
 
 ```env
 VITE_API_BASE_URL=/api
+VITE_SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+VITE_SENTRY_ENVIRONMENT=production
+VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
+VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE=0
+VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=1
+
+SENTRY_ORG=your-org
+SENTRY_PROJECT=your-web-project
+SENTRY_AUTH_TOKEN=your-auth-token
+SENTRY_RELEASE=your-release
 ```
+
+说明：
+
+- `VITE_SENTRY_*` 是运行时配置，前端启动后会读取。
+- `SENTRY_*` 是构建时配置，用于自动上传 sourcemap；不配置也能上报，但线上堆栈会是压缩后的代码。
+- 如果 `pnpm install` 时看到了 `Ignored build scripts: @sentry/cli`，需要执行 `pnpm approve-builds` 放行它，sourcemap 自动上传才会生效。
+- 仓库中的接入默认在 `VITE_SENTRY_DSN` 为空时自动禁用，不会影响本地开发。
 
 ## API
 

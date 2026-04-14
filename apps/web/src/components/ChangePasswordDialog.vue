@@ -27,6 +27,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { changePassword } from '@/api/auth';
 import { useAuthStore } from '@/stores/auth';
+import { trackMonitorEvent } from '@qianfo/shared';
 
 const visible = defineModel<boolean>({ required: true });
 const router = useRouter();
@@ -70,6 +71,11 @@ async function onSubmit() {
   loading.value = true;
   try {
     await changePassword(form.oldPassword, form.newPassword);
+    trackMonitorEvent('password_change', {
+      attributes: {
+        result: 'success',
+      },
+    });
     visible.value = false;
     await ElMessageBox.confirm('密码修改成功，请重新登录', '提示', {
       confirmButtonText: '重新登录',
@@ -81,7 +87,15 @@ async function onSubmit() {
     });
     auth.logout();
     router.replace('/login');
-  } catch {
+  } catch (error: any) {
+    trackMonitorEvent('password_change', {
+      attributes: {
+        result: 'failure',
+      },
+      data: {
+        reason: error?.message || 'unknown',
+      },
+    });
     // 错误由 axios 拦截器处理
   } finally {
     loading.value = false;

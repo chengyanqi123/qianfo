@@ -36,6 +36,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { login } from '@/api/auth'
+import { trackMonitorEvent } from '@qianfo/shared'
 
 const REMEMBER_KEY = 'qianfo_remember'
 
@@ -82,7 +83,26 @@ async function onSubmit() {
     }
 
     const redirect = (route.query.redirect as string) || '/'
+    trackMonitorEvent('admin_login', {
+      attributes: {
+        result: 'success',
+        remember_me: rememberMe.value,
+      },
+      data: {
+        redirect,
+      },
+    })
     router.replace(redirect)
+  } catch (error: any) {
+    trackMonitorEvent('admin_login', {
+      attributes: {
+        result: 'failure',
+        remember_me: rememberMe.value,
+      },
+      data: {
+        reason: error?.message || 'unknown',
+      },
+    })
   } finally {
     loading.value = false
   }

@@ -106,7 +106,7 @@
 import { ref, toRaw } from 'vue';
 import { showSuccessToast, showFailToast, type FormInstance, type PickerOption } from 'vant';
 import { submitAppointment } from '@/api/appointment';
-import type { CreateAppointmentDto } from '@qianfo/shared';
+import { trackMonitorEvent, type CreateAppointmentDto } from '@qianfo/shared';
 import dayjs from 'dayjs';
 import { getDefaultLimit, getReserveByDate } from '@/api/setting';
 
@@ -287,19 +287,43 @@ function timeFilter(type: string, options: PickerOption[]) {
 // 提交和重置
 // init
 async function onSubmit() {
+  const payload = toRaw(form.value);
   submitting.value = true;
   loading.value = true;
-  submitAppointment(toRaw(form.value))
-    .then(() => {
-      showSuccessToast('预约成功！');
-      resetForm();
-      return init();
-    })
-    .then(() => {})
-    .finally(() => {
-      submitting.value = false;
-      loading.value = false;
+  try {
+    await submitAppointment(payload);
+    trackMonitorEvent('appointment_submit', {
+      attributes: {
+        result: 'success',
+        count: payload.count,
+        has_remark: Boolean(payload.remark),
+        days_ahead: Math.max(dayjs(payload.date).diff(dayjs(), 'day'), 0),
+      },
+      data: {
+        date: payload.date,
+        time: payload.time,
+      },
     });
+    showSuccessToast('预约成功！');
+    resetForm();
+    await init();
+  } catch (error: any) {
+    trackMonitorEvent('appointment_submit', {
+      attributes: {
+        result: 'failure',
+        count: payload.count,
+        has_remark: Boolean(payload.remark),
+      },
+      data: {
+        date: payload.date,
+        time: payload.time,
+        reason: error?.message || 'unknown',
+      },
+    });
+  } finally {
+    submitting.value = false;
+    loading.value = false;
+  }
 }
 function resetForm() {
   formRef.value?.resetValidation();
