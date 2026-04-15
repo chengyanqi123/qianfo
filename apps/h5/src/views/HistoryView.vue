@@ -83,83 +83,84 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { showSuccessToast, showConfirmDialog } from 'vant';
-import { getAppointmentHistory, cancelAppointment, getAppointmentStatus } from '@/api/appointment';
-import { trackMonitorEvent, type Appointment, type AppointmentStatus } from '@qianfo/shared';
-import QRCode from 'qrcode';
+import { ref, onMounted } from 'vue'
+import { showSuccessToast, showConfirmDialog } from 'vant'
+import { getAppointmentHistory, cancelAppointment, getAppointmentStatus } from '@/api/appointment'
+import { trackMonitorEvent, type Appointment, type AppointmentStatus } from '@qianfo/shared'
+import QRCode from 'qrcode'
+import { trackUmengEvent } from '@/analytics/umeng'
 
-const list = ref<Appointment[]>([]);
-const loading = ref(false);
-const refreshing = ref(false);
-const page = ref(1);
-const pageSize = 10;
-const noMore = ref(false);
-const cancellingId = ref<number | null>(null);
-const qrVisible = ref(false);
-const qrDataUrl = ref('');
-const qrId = ref(0);
+const list = ref<Appointment[]>([])
+const loading = ref(false)
+const refreshing = ref(false)
+const page = ref(1)
+const pageSize = 10
+const noMore = ref(false)
+const cancellingId = ref<number | null>(null)
+const qrVisible = ref(false)
+const qrDataUrl = ref('')
+const qrId = ref(0)
 
 const statusText = (status: AppointmentStatus) => {
   const map: Record<AppointmentStatus, string> = {
     pending: '待确认',
     confirmed: '已确认',
     cancelled: '已取消',
-  };
-  return map[status];
-};
+  }
+  return map[status]
+}
 
 const statusTagType = (status: AppointmentStatus): 'warning' | 'success' | 'danger' => {
   const map: Record<AppointmentStatus, 'warning' | 'success' | 'danger'> = {
     pending: 'warning',
     confirmed: 'success',
     cancelled: 'danger',
-  };
-  return map[status];
-};
+  }
+  return map[status]
+}
 
 function formatTime(str: string) {
-  const d = new Date(str);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const d = new Date(str)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 async function fetchList(reset = false) {
-  if (loading.value) return;
-  loading.value = true;
+  if (loading.value) return
+  loading.value = true
   try {
     if (reset) {
-      page.value = 1;
-      list.value = [];
-      noMore.value = false;
+      page.value = 1
+      list.value = []
+      noMore.value = false
     }
-    const res = await getAppointmentHistory(page.value, pageSize);
-    list.value = reset ? res.list : [...list.value, ...res.list];
-    noMore.value = list.value.length >= res.total;
+    const res = await getAppointmentHistory(page.value, pageSize)
+    list.value = reset ? res.list : [...list.value, ...res.list]
+    noMore.value = list.value.length >= res.total
   } catch (e: any) {
     // showFailToast(e.message || '加载失败');
   } finally {
-    loading.value = false;
-    refreshing.value = false;
+    loading.value = false
+    refreshing.value = false
   }
 }
 
 function onRefresh() {
-  fetchList(true);
+  fetchList(true)
 }
 
 function loadMore() {
-  page.value++;
-  fetchList();
+  page.value++
+  fetchList()
 }
 
-onMounted(() => fetchList(true));
+onMounted(() => fetchList(true))
 
-let loopId: NodeJS.Timeout;
+let loopId: NodeJS.Timeout
 async function showQrCode(item: Appointment) {
-  const content = JSON.stringify({ id: item.id, date: item.date, time: item.time });
-  qrDataUrl.value = await QRCode.toDataURL(content, { width: 250, margin: 2 });
-  qrId.value = item.id;
-  qrVisible.value = true;
+  const content = JSON.stringify({ id: item.id, date: item.date, time: item.time })
+  qrDataUrl.value = await QRCode.toDataURL(content, { width: 250, margin: 2 })
+  qrId.value = item.id
+  qrVisible.value = true
   trackMonitorEvent('appointment_qrcode_open', {
     attributes: {
       appointment_count: item.count,
@@ -170,12 +171,19 @@ async function showQrCode(item: Appointment) {
       date: item.date,
       time: item.time,
     },
-  });
+  })
+  trackUmengEvent('appointment_qrcode_open', {
+    appointment_count: item.count,
+    status: item.status,
+    appointment_id: item.id,
+    date: item.date,
+    time: item.time,
+  })
   loopId = setInterval(() => {
     getAppointmentStatus(item.id).then((status) => {
       if (status === 'confirmed') {
-        const target = list.value.find((i) => i.id === qrId.value);
-        if (target) target.status = 'confirmed';
+        const target = list.value.find((i) => i.id === qrId.value)
+        if (target) target.status = 'confirmed'
         trackMonitorEvent('appointment_writeoff_confirmed', {
           attributes: {
             result: 'success',
@@ -186,21 +194,28 @@ async function showQrCode(item: Appointment) {
             date: item.date,
             time: item.time,
           },
-        });
-        resetQr();
-        showSuccessToast('核销成功');
+        })
+        trackUmengEvent('appointment_writeoff_confirmed', {
+          result: 'success',
+          appointment_count: item.count,
+          appointment_id: item.id,
+          date: item.date,
+          time: item.time,
+        })
+        resetQr()
+        showSuccessToast('核销成功')
       }
-    });
-  }, 2000);
+    })
+  }, 2000)
 }
 function qrClose() {
-  clearInterval(loopId);
-  resetQr();
+  clearInterval(loopId)
+  resetQr()
 }
 function resetQr() {
-  qrDataUrl.value = '';
-  qrId.value = 0;
-  qrVisible.value = false;
+  qrDataUrl.value = ''
+  qrId.value = 0
+  qrVisible.value = false
 }
 
 async function onCancel(item: Appointment) {
@@ -211,14 +226,14 @@ async function onCancel(item: Appointment) {
       confirmButtonText: '确认取消',
       cancelButtonText: '再想想',
       confirmButtonColor: '#ee0a24',
-    });
+    })
   } catch {
-    return; // 用户点击"再想想"
+    return // 用户点击"再想想"
   }
-  cancellingId.value = item.id;
+  cancellingId.value = item.id
   try {
-    await cancelAppointment(item.id);
-    item.status = 'cancelled';
+    await cancelAppointment(item.id)
+    item.status = 'cancelled'
     trackMonitorEvent('appointment_cancel', {
       attributes: {
         result: 'success',
@@ -229,8 +244,15 @@ async function onCancel(item: Appointment) {
         date: item.date,
         time: item.time,
       },
-    });
-    showSuccessToast('预约已取消');
+    })
+    trackUmengEvent('appointment_cancel', {
+      result: 'success',
+      appointment_count: item.count,
+      appointment_id: item.id,
+      date: item.date,
+      time: item.time,
+    })
+    showSuccessToast('预约已取消')
   } catch (e: any) {
     trackMonitorEvent('appointment_cancel', {
       attributes: {
@@ -241,10 +263,16 @@ async function onCancel(item: Appointment) {
         appointment_id: item.id,
         reason: e?.message || 'unknown',
       },
-    });
+    })
+    trackUmengEvent('appointment_cancel', {
+      result: 'failure',
+      appointment_count: item.count,
+      appointment_id: item.id,
+      reason: e?.message || 'unknown',
+    })
     // showFailToast(e.message || '取消失败，请重试');
   } finally {
-    cancellingId.value = null;
+    cancellingId.value = null
   }
 }
 </script>

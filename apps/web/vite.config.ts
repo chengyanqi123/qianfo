@@ -1,18 +1,40 @@
-import { fileURLToPath, URL } from 'node:url';
-import path from 'node:path';
-import { defineConfig, loadEnv } from 'vite';
-import vue from '@vitejs/plugin-vue';
-import { sentryCliBinaryExists, sentryVitePlugin } from '@sentry/vite-plugin';
-import AutoImport from 'unplugin-auto-import/vite';
-import IconsResolver from 'unplugin-icons/resolver';
-import Icons from 'unplugin-icons/vite';
-import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
-import Components from 'unplugin-vue-components/vite';
+import { fileURLToPath, URL } from 'node:url'
+import path from 'node:path'
+import { execSync } from 'node:child_process'
+import { defineConfig, loadEnv } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { sentryCliBinaryExists, sentryVitePlugin } from '@sentry/vite-plugin'
+import AutoImport from 'unplugin-auto-import/vite'
+import IconsResolver from 'unplugin-icons/resolver'
+import Icons from 'unplugin-icons/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import Components from 'unplugin-vue-components/vite'
 
-const pathSrc = path.resolve(__dirname, 'src');
+const pathSrc = path.resolve(__dirname, 'src')
+
+function resolveSentryRelease(appName: string, env: Record<string, string>): string | undefined {
+  const explicitRelease = env.VITE_SENTRY_RELEASE || env.SENTRY_RELEASE
+  if (explicitRelease) {
+    return explicitRelease
+  }
+
+  try {
+    const gitSha = execSync('git rev-parse --short HEAD', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim()
+
+    return gitSha ? `${appName}@${gitSha}` : undefined
+  } catch {
+    return undefined
+  }
+}
 
 export default defineConfig(({ mode }) => {
+  const appName = 'web'
   const env = loadEnv(mode, __dirname, '')
+  const sentryRelease = resolveSentryRelease(appName, env)
   const hasSentryUploadConfig = Boolean(env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT)
   const enableSentryUpload = hasSentryUploadConfig && sentryCliBinaryExists()
 
@@ -22,32 +44,33 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/web/',
+    define: {
+      'import.meta.env.VITE_SENTRY_RELEASE': JSON.stringify(sentryRelease),
+    },
     build: {
       sourcemap: enableSentryUpload,
     },
     plugins: [
       vue(),
-      ...(
-        enableSentryUpload
-          ? sentryVitePlugin({
-              authToken: env.SENTRY_AUTH_TOKEN,
-              org: env.SENTRY_ORG,
-              project: env.SENTRY_PROJECT,
-              url: env.SENTRY_URL || undefined,
-              release: {
-                name: env.SENTRY_RELEASE || undefined,
-              },
-              sourcemaps: {
-                assets: './dist/**',
-                filesToDeleteAfterUpload: ['./dist/**/*.js.map', './dist/**/*.css.map'],
-              },
-              telemetry: false,
-              errorHandler(error) {
-                console.warn(`[sentry] ${error.message}`)
-              },
-            })
-          : []
-      ),
+      ...(enableSentryUpload
+        ? sentryVitePlugin({
+            authToken: env.SENTRY_AUTH_TOKEN,
+            org: env.SENTRY_ORG,
+            project: env.SENTRY_PROJECT,
+            url: env.SENTRY_URL || undefined,
+            release: {
+              name: sentryRelease,
+            },
+            sourcemaps: {
+              assets: './dist/**',
+              filesToDeleteAfterUpload: ['./dist/**/*.js.map', './dist/**/*.css.map'],
+            },
+            telemetry: false,
+            errorHandler(error) {
+              console.warn(`[sentry] ${error.message}`)
+            },
+          })
+        : []),
       AutoImport({
         imports: ['vue', 'vue-router', 'pinia'],
         // Auto import functions from Element Plus, e.g. ElMessage, ElMessageBox... (with style)

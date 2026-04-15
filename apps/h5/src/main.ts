@@ -11,6 +11,7 @@ import 'vant/es/toast/style';
 import { Notify } from 'vant';
 import { initMonitor, setMonitorContext, setMonitorTag, setMonitorUser } from '@qianfo/shared';
 import { useUserStore } from '@/stores/user';
+import { setUmengUserId, trackUmengPageView } from '@/analytics/umeng';
 
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
@@ -39,11 +40,13 @@ watch(
   (session) => {
     const currentUser = session.user;
     if (!session.token || !currentUser?.id) {
+      setUmengUserId(null);
       setMonitorUser(null);
       setMonitorTag('user_role', null);
       return;
     }
 
+    setUmengUserId(String(currentUser.id));
     setMonitorUser({
       id: String(currentUser.id),
       username: currentUser.nickname || undefined,
@@ -55,6 +58,7 @@ watch(
 );
 
 router.afterEach((to) => {
+  trackUmengPageView(to);
   setMonitorTag('route', to.path);
   setMonitorContext('route', {
     path: to.path,

@@ -1,13 +1,36 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>预约服务</title>
-  </head>
 
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>预约服务</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+  <script>
+    (function (w, d, s, q, i) {
+      w[q] = w[q] || [];
+      var f = d.getElementsByTagName(s)[0], j = d.createElement(s);
+      j.async = true;
+      j.id = 'beacon-aplus';
+      j.src = 'https://d.alicdn.com/alilog/mlog/aplus/' + i + '.js';
+      f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'aplus_queue', '203467608');
+
+    //集成应用的appKey
+    aplus_queue.push({
+      action: 'aplus.setMetaInfo',
+      arguments: ['appKey', '69deefb76f259537c799564a']
+    });
+    // 单页面应用关闭自动 PV，改由路由切换时手动上报。
+    aplus_queue.push({
+      action: 'aplus.setMetaInfo',
+      arguments: ['aplus-waiting', 'MAN']
+    });
+  </script>
+</body>
+
 </html>
