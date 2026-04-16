@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OSSUTIL_VERSION: 2.2.1
-      OSSUTIL_LINUX_AMD64_SHA256: fbf102336535d54e51af5f0d54a3d1ec543ee0fbcdbe96c6e118cb6d2f5da073
+      OSSUTIL_LINUX_AMD64_SHA256: fbf1026bd383a5d9bee051cd64a6226c730357ba569491f7c7b91af66560ef1d
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SERVER_IP: ${{ secrets.SERVER_IP }}
       SERVER_USER: ${{ secrets.SERVER_USER }}
