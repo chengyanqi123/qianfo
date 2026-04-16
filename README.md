@@ -88,6 +88,8 @@ SENTRY_RELEASE=your-release
 
 说明：
 
+- 本地开发默认使用 `VITE_API_BASE_URL=/api`。
+- 生产构建会读取 [apps/h5/.env.production](/Users/erick/Desktop/codes/qianfo/apps/h5/.env.production) 和 [apps/web/.env.production](/Users/erick/Desktop/codes/qianfo/apps/web/.env.production)。
 - `VITE_SENTRY_*` 是运行时配置，前端启动后会读取。
 - `SENTRY_*` 是构建时配置，用于自动上传 sourcemap；不配置也能上报，但线上堆栈会是压缩后的代码。
 - 如果 `pnpm install` 时看到了 `Ignored build scripts: @sentry/cli`，需要执行 `pnpm approve-builds` 放行它，sourcemap 自动上传才会生效。
@@ -140,9 +142,3 @@ SENTRY_RELEASE=your-release
 - 如果没有配置 `ALIYUN_OSS_H5_PREFIX` / `ALIYUN_OSS_WEB_PREFIX`，工作流会分别默认上传到 `h5/` 和 `web/`。
 - 当前前端构建基路径分别固定为 `/h5/` 和 `/web/`。如果你希望 OSS 走别的访问路径，需要同步修改 [apps/h5/vite.config.ts](/Users/erick/Desktop/codes/qianfo/apps/h5/vite.config.ts) 和 [apps/web/vite.config.ts](/Users/erick/Desktop/codes/qianfo/apps/web/vite.config.ts) 里的 `base`。
 - `ALIYUN_OSS_ENDPOINT` 不填时，会按 `ALIYUN_OSS_REGION` 使用默认 OSS Endpoint；如果你的 Bucket 位于中国内地并且绑定了自定义域名，建议直接把该域名配置到 `ALIYUN_OSS_ENDPOINT`，工作流会自动切换到 CNAME 模式上传。
-
-服务器侧仍然使用 `nginx.conf` 托管静态资源，配置如下：
-
-- `/h5/` → H5 静态文件（SPA fallback）
-- `/web/` → 管理端静态文件（SPA fallback）
-- `/api/` → 反向代理到后端服务
