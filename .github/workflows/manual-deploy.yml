@@ -11,14 +11,71 @@ on:
           - h5
           - web
           - all
+      destination:
+        description: 选择上传目标
+        required: true
+        type: choice
+        options:
+          - server
+          - oss
+          - both
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      OSSUTIL_VERSION: 2.2.1
+      OSSUTIL_LINUX_AMD64_SHA256: fbf102336535d54e51af5f0d54a3d1ec543ee0fbcdbe96c6e118cb6d2f5da073
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SERVER_IP: ${{ secrets.SERVER_IP }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      ALIYUN_OSS_ACCESS_KEY_ID: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_ID }}
+      ALIYUN_OSS_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_SECRET }}
+      ALIYUN_OSS_REGION: ${{ secrets.ALIYUN_OSS_REGION }}
+      ALIYUN_OSS_ENDPOINT: ${{ secrets.ALIYUN_OSS_ENDPOINT }}
+      ALIYUN_OSS_BUCKET: ${{ secrets.ALIYUN_OSS_BUCKET }}
+      ALIYUN_OSS_H5_PREFIX: ${{ secrets.ALIYUN_OSS_H5_PREFIX }}
+      ALIYUN_OSS_WEB_PREFIX: ${{ secrets.ALIYUN_OSS_WEB_PREFIX }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Validate destination settings
+        run: |
+          if [ "${{ github.event.inputs.destination }}" = "server" ] || [ "${{ github.event.inputs.destination }}" = "both" ]; then
+            missing=()
+            for key in SERVER_IP SERVER_USER SSH_PRIVATE_KEY; do
+              if [ -z "${!key}" ]; then
+                missing+=("$key")
+              fi
+            done
+
+            if [ "${#missing[@]}" -gt 0 ]; then
+              echo "Missing required GitHub Secrets for server deployment:"
+              printf -- '- %s\n' "${missing[@]}"
+              exit 1
+            fi
+          fi
+
+          if [ "${{ github.event.inputs.destination }}" = "oss" ] || [ "${{ github.event.inputs.destination }}" = "both" ]; then
+            missing=()
+            for key in ALIYUN_OSS_ACCESS_KEY_ID ALIYUN_OSS_ACCESS_KEY_SECRET ALIYUN_OSS_REGION ALIYUN_OSS_BUCKET; do
+              if [ -z "${!key}" ]; then
+                missing+=("$key")
+              fi
+            done
+
+            if [ "${#missing[@]}" -gt 0 ]; then
+              echo "Missing required GitHub Secrets for OSS deployment:"
+              printf -- '- %s\n' "${missing[@]}"
+              exit 1
+            fi
+
+            if [[ "$ALIYUN_OSS_REGION" == cn-* ]] && [ -z "$ALIYUN_OSS_ENDPOINT" ]; then
+              echo "::warning::ALIYUN_OSS_ENDPOINT 未配置。若 Bucket 位于中国内地且同步失败，请将 Bucket 绑定的自定义域名(CNAME)填入该 Secret。"
+            fi
+          fi
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -32,28 +89,83 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install ossutil
+        if: github.event.inputs.destination == 'oss' || github.event.inputs.destination == 'both'
+        run: |
+          if ! command -v unzip >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y unzip
+          fi
+
+          tmp_dir="$(mktemp -d)"
+          cd "$tmp_dir"
+
+          curl -fsSLo ossutil.zip "https://gosspublic.alicdn.com/ossutil/v2/${OSSUTIL_VERSION}/ossutil-${OSSUTIL_VERSION}-linux-amd64.zip"
+          echo "${OSSUTIL_LINUX_AMD64_SHA256}  ossutil.zip" | sha256sum -c -
+          unzip -q ossutil.zip
+          sudo install -m 755 "ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil" /usr/local/bin/ossutil
+          ossutil --version
+
       - name: Setup SSH
+        if: github.event.inputs.destination == 'server' || github.event.inputs.destination == 'both'
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Build and deploy H5
-        if: github.event.inputs.app == 'h5' || github.event.inputs.app == 'all'
+      - name: Build selected apps
+        run: |
+          pids=()
+          if [ "$DEPLOY_H5" = "true" ]; then
+            echo "Building H5..."
+            pnpm run build:h5 &
+            pids+=($!)
+          fi
+          if [ "$DEPLOY_WEB" = "true" ]; then
+            echo "Building Web..."
+            pnpm run build:web &
+            pids+=($!)
+          fi
+          for pid in "${pids[@]}"; do
+            wait "$pid" || exit 1
+          done
         env:
+          DEPLOY_H5: ${{ github.event.inputs.app == 'h5' || github.event.inputs.app == 'all' }}
+          DEPLOY_WEB: ${{ github.event.inputs.app == 'web' || github.event.inputs.app == 'all' }}
           VITE_WX_APP_ID: ${{ secrets.APP_ID }}
           VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
-        run: |
-          pnpm run build:h5
-          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
-            ./apps/h5/dist/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/h5
 
-      - name: Build and deploy Web
-        if: github.event.inputs.app == 'web' || github.event.inputs.app == 'all'
+      - name: Deploy to server
+        id: deploy_server
+        if: github.event.inputs.destination == 'server'
         run: |
-          pnpm run build:web
-          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
-            ./apps/web/dist/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/web
+          ./scripts/deploy-server.sh
+        env:
+          DEPLOY_APP: ${{ github.event.inputs.app }}
+
+      - name: Deploy to OSS
+        id: deploy_oss
+        if: github.event.inputs.destination == 'oss'
+        run: |
+          ./scripts/deploy-oss.sh
+        env:
+          DEPLOY_APP: ${{ github.event.inputs.app }}
+
+      - name: Deploy to server and OSS
+        id: deploy_both
+        if: github.event.inputs.destination == 'both'
+        run: |
+          ./scripts/deploy-server-and-oss.sh
+        env:
+          DEPLOY_APP: ${{ github.event.inputs.app }}
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Selected app: ${{ github.event.inputs.app }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Destination: ${{ github.event.inputs.destination }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Server step: ${{ steps.deploy_server.outcome || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- OSS step: ${{ steps.deploy_oss.outcome || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Server and OSS step: ${{ steps.deploy_both.outcome || 'skipped' }}" >> $GITHUB_STEP_SUMMARY

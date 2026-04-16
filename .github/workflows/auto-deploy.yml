@@ -1,4 +1,4 @@
-name: Auto Deploy to Server
+name: Auto Deploy to OSS
 
 on:
   push:
@@ -11,6 +11,16 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      OSSUTIL_VERSION: 2.2.1
+      OSSUTIL_LINUX_AMD64_SHA256: fbf102336535d54e51af5f0d54a3d1ec543ee0fbcdbe96c6e118cb6d2f5da073
+      ALIYUN_OSS_ACCESS_KEY_ID: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_ID }}
+      ALIYUN_OSS_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_SECRET }}
+      ALIYUN_OSS_REGION: ${{ secrets.ALIYUN_OSS_REGION }}
+      ALIYUN_OSS_ENDPOINT: ${{ secrets.ALIYUN_OSS_ENDPOINT }}
+      ALIYUN_OSS_BUCKET: ${{ secrets.ALIYUN_OSS_BUCKET }}
+      ALIYUN_OSS_H5_PREFIX: ${{ secrets.ALIYUN_OSS_H5_PREFIX }}
+      ALIYUN_OSS_WEB_PREFIX: ${{ secrets.ALIYUN_OSS_WEB_PREFIX }}
 
     steps:
       - name: Checkout code
@@ -48,6 +58,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install ossutil
+        run: |
+          if ! command -v unzip >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y unzip
+          fi
+
+          tmp_dir="$(mktemp -d)"
+          cd "$tmp_dir"
+
+          curl -fsSLo ossutil.zip "https://gosspublic.alicdn.com/ossutil/v2/${OSSUTIL_VERSION}/ossutil-${OSSUTIL_VERSION}-linux-amd64.zip"
+          echo "${OSSUTIL_LINUX_AMD64_SHA256}  ossutil.zip" | sha256sum -c -
+          unzip -q ossutil.zip
+          sudo install -m 755 "ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil" /usr/local/bin/ossutil
+          ossutil --version
+
       - name: Build apps in parallel
         run: |
           pids=()
@@ -71,33 +97,29 @@ jobs:
           VITE_WX_APP_ID: ${{ secrets.APP_ID }}
           VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
 
-      - name: Setup SSH
+      - name: Validate OSS settings
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to server
-        run: |
-          pids=()
-          if [ "$DEPLOY_H5" = "true" ]; then
-            echo "Deploying H5..."
-            rsync -avz --delete --exclude='MP_verify_*' -e "ssh -i ~/.ssh/id_rsa" \
-              ./apps/h5/dist/ \
-              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/h5 &
-            pids+=($!)
-          fi
-          if [ "$DEPLOY_WEB" = "true" ]; then
-            echo "Deploying Web..."
-            rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" \
-              ./apps/web/dist/ \
-              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/www/qianfo/web &
-            pids+=($!)
-          fi
-          for pid in "${pids[@]}"; do
-            wait "$pid" || exit 1
+          missing=()
+          for key in ALIYUN_OSS_ACCESS_KEY_ID ALIYUN_OSS_ACCESS_KEY_SECRET ALIYUN_OSS_REGION ALIYUN_OSS_BUCKET; do
+            if [ -z "${!key}" ]; then
+              missing+=("$key")
+            fi
           done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Missing required GitHub Secrets for OSS deployment:"
+            printf -- '- %s\n' "${missing[@]}"
+            exit 1
+          fi
+
+          if [[ "$ALIYUN_OSS_REGION" == cn-* ]] && [ -z "$ALIYUN_OSS_ENDPOINT" ]; then
+            echo "::warning::ALIYUN_OSS_ENDPOINT 未配置。若 Bucket 位于中国内地且同步失败，请将 Bucket 绑定的自定义域名(CNAME)填入该 Secret。"
+          fi
+
+      - name: Deploy to OSS
+        id: deploy_oss
+        run: |
+          ./scripts/deploy-oss.sh
         env:
           DEPLOY_H5: ${{ steps.changes.outputs.deploy_h5 }}
           DEPLOY_WEB: ${{ steps.changes.outputs.deploy_web }}
@@ -106,5 +128,6 @@ jobs:
         if: always()
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- H5: ${{ steps.changes.outputs.deploy_h5 == 'true' && '✅ deployed' || '⏭️ skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Web: ${{ steps.changes.outputs.deploy_web == 'true' && '✅ deployed' || '⏭️ skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- H5 artifact: ${{ steps.changes.outputs.deploy_h5 == 'true' && 'selected' || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Web artifact: ${{ steps.changes.outputs.deploy_web == 'true' && 'selected' || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- OSS deploy step: ${{ steps.deploy_oss.outcome || 'skipped' }}" >> $GITHUB_STEP_SUMMARY

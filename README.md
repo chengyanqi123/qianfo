@@ -99,7 +99,49 @@ SENTRY_RELEASE=your-release
 
 ## 部署
 
-项目通过 GitHub Actions 自动部署，`nginx.conf` 配置如下：
+项目通过 GitHub Actions 部署到服务器和阿里云 OSS：
+
+- `.github/workflows/auto-deploy.yml`
+  push 到 `master` 且改动包含 `apps/h5`、`apps/web` 或 `packages/shared` 时自动构建，并自动上传到 OSS。
+- `.github/workflows/manual-deploy.yml`
+  可手动选择 `h5`、`web` 或 `all`，并选择上传到 `server`、`oss` 或 `both`。
+
+仓库里保留了 3 个手动部署脚本：
+
+- `scripts/deploy-server.sh`
+- `scripts/deploy-oss.sh`
+- `scripts/deploy-server-and-oss.sh`
+
+自动部署 OSS 需要配置以下 GitHub Secrets：
+
+- `APP_ID`
+- `H5_SITE`
+- `ALIYUN_OSS_ACCESS_KEY_ID`
+- `ALIYUN_OSS_ACCESS_KEY_SECRET`
+- `ALIYUN_OSS_REGION`
+- `ALIYUN_OSS_BUCKET`
+- `ALIYUN_OSS_ENDPOINT`（可选）
+- `ALIYUN_OSS_H5_PREFIX`（可选，默认 `h5`）
+- `ALIYUN_OSS_WEB_PREFIX`（可选，默认 `web`）
+
+如果需要手动上传到服务器，还需要：
+
+- `SSH_PRIVATE_KEY`
+- `SERVER_IP`
+- `SERVER_USER`
+
+默认 OSS 同步路径会和当前 Vite `base` 保持一致：
+
+- H5 -> `oss://<bucket>/h5/`
+- Web -> `oss://<bucket>/web/`
+
+说明：
+
+- 如果没有配置 `ALIYUN_OSS_H5_PREFIX` / `ALIYUN_OSS_WEB_PREFIX`，工作流会分别默认上传到 `h5/` 和 `web/`。
+- 当前前端构建基路径分别固定为 `/h5/` 和 `/web/`。如果你希望 OSS 走别的访问路径，需要同步修改 [apps/h5/vite.config.ts](/Users/erick/Desktop/codes/qianfo/apps/h5/vite.config.ts) 和 [apps/web/vite.config.ts](/Users/erick/Desktop/codes/qianfo/apps/web/vite.config.ts) 里的 `base`。
+- `ALIYUN_OSS_ENDPOINT` 不填时，会按 `ALIYUN_OSS_REGION` 使用默认 OSS Endpoint；如果你的 Bucket 位于中国内地并且绑定了自定义域名，建议直接把该域名配置到 `ALIYUN_OSS_ENDPOINT`，工作流会自动切换到 CNAME 模式上传。
+
+服务器侧仍然使用 `nginx.conf` 托管静态资源，配置如下：
 
 - `/h5/` → H5 静态文件（SPA fallback）
 - `/web/` → 管理端静态文件（SPA fallback）
