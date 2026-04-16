@@ -104,7 +104,7 @@ jobs:
           echo "${OSSUTIL_LINUX_AMD64_SHA256}  ossutil.zip" | sha256sum -c -
           unzip -q ossutil.zip
           sudo install -m 755 "ossutil-${OSSUTIL_VERSION}-linux-amd64/ossutil" /usr/local/bin/ossutil
-          ossutil --version
+          ossutil version
 
       - name: Setup SSH
         if: github.event.inputs.destination == 'server' || github.event.inputs.destination == 'both'
