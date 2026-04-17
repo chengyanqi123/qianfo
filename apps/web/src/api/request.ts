@@ -14,15 +14,16 @@ let isLogoutHandling = false
 
 function summarizePayload(payload: unknown) {
   if (!payload) return undefined
-  const value = typeof payload === 'string'
-    ? (() => {
-        try {
-          return JSON.parse(payload)
-        } catch {
-          return payload
-        }
-      })()
-    : payload
+  const value =
+    typeof payload === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(payload)
+          } catch {
+            return payload
+          }
+        })()
+      : payload
   if (Array.isArray(value)) {
     return { type: 'array', size: value.length }
   }
@@ -70,9 +71,7 @@ request.interceptors.response.use(
     isLogoutHandling = false
     const res = response.data
     if (res.code !== 0) {
-      if (res.code !== 401) {
-        reportApiError(new Error(res.message || '请求失败'), res.code, response.status, response.config)
-      }
+      reportApiError(new Error(res.message || '请求失败'), res.code, response.status, response.config)
       ElMessage.error(res.message || '请求失败')
       return Promise.reject(new Error(res.message || '请求失败'))
     }
@@ -85,6 +84,12 @@ request.interceptors.response.use(
     }
     const message = error.response?.data?.message || error.message || '网络错误'
     if (error?.status === 401 || error.response?.status === 401 || error.response?.data?.code === 401) {
+      reportApiError(
+        error,
+        error.response?.data?.code || 401,
+        error.response?.status || error.status || 401,
+        error.config,
+      )
       if (!isLogoutHandling) {
         isLogoutHandling = true
         const auth = useAuthStore()

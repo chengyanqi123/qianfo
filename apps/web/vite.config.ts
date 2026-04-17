@@ -141,7 +141,6 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': {
           // target: 'http://192.168.5.102:10011',
-          target: 'https://qianfo.chengyanqi.com',
           changeOrigin: true,
           // rewrite: (path) => path.replace(/^\/api/, ''),
         },
