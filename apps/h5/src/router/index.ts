@@ -19,6 +19,23 @@ function getWechatCallbackQuery() {
   }
 }
 
+function clearWechatCallbackQueryFromUrl() {
+  const url = new URL(window.location.href)
+  const searchParams = new URLSearchParams(url.search)
+  const hasCallbackQuery = searchParams.has('code') || searchParams.has('state')
+
+  if (!hasCallbackQuery) {
+    return
+  }
+
+  searchParams.delete('code')
+  searchParams.delete('state')
+
+  const nextSearch = searchParams.toString()
+  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`
+  window.history.replaceState(window.history.state, '', nextUrl)
+}
+
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
@@ -31,6 +48,7 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const callbackQuery = getWechatCallbackQuery()
   const code = (to.query.code as string | undefined) || callbackQuery?.code
+  const hasRouteCallbackQuery = to.query.code !== undefined || to.query.state !== undefined
 
   if (code) {
     try {
@@ -39,9 +57,20 @@ router.beforeEach(async (to) => {
     } catch {
       // 登录失败，继续导航
     }
-    // 删除code和state参数
-    const { code: _, state: __, ...query } = to.query
-    return { path: to.path, query }
+
+    clearWechatCallbackQueryFromUrl()
+
+    if (hasRouteCallbackQuery) {
+      // 删除路由里的 code / state，避免重复触发登录
+      const { code: _, state: __, ...query } = to.query
+      return { path: to.path, query, hash: to.hash }
+    }
+
+    return
+  }
+
+  if (callbackQuery) {
+    clearWechatCallbackQueryFromUrl()
   }
 })
 
