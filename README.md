@@ -92,7 +92,8 @@ SENTRY_RELEASE=your-release
 - 生产构建会读取 [apps/h5/.env.production](/Users/erick/Desktop/codes/qianfo/apps/h5/.env.production) 和 [apps/web/.env.production](/Users/erick/Desktop/codes/qianfo/apps/web/.env.production)。
 - `VITE_SENTRY_*` 是运行时配置，前端启动后会读取。
 - `SENTRY_*` 是构建时配置，用于自动上传 sourcemap；不配置也能上报，但线上堆栈会是压缩后的代码。
-- 如果 `pnpm install` 时看到了 `Ignored build scripts: @sentry/cli`，需要执行 `pnpm approve-builds` 放行它，sourcemap 自动上传才会生效。
+- 仓库已在 [pnpm-workspace.yaml](/Users/erick/Desktop/codes/qianfo/pnpm-workspace.yaml) 放行 `@sentry/cli`，CI 安装依赖后会自动具备 sourcemap 上传能力。
+- 如果你本地之前安装依赖时看到了 `Ignored build scripts: @sentry/cli`，可以执行 `pnpm approve-builds` 后重新安装依赖。
 - 仓库中的接入默认在 `VITE_SENTRY_DSN` 为空时自动禁用，不会影响本地开发。
 
 ## API
@@ -131,6 +132,21 @@ SENTRY_RELEASE=your-release
 - `SSH_PRIVATE_KEY`
 - `SERVER_IP`
 - `SERVER_USER`
+
+如果需要在 GitHub Actions 构建阶段自动上传 sourcemap 到 Sentry，还需要：
+
+- `SENTRY_ORG`
+- `SENTRY_AUTH_TOKEN`
+- `SENTRY_URL`（可选，默认 `https://sentry.io`）
+- `H5_SENTRY_PROJECT`（H5 构建时使用）
+- `WEB_SENTRY_PROJECT`（Web 构建时使用）
+- `H5_SENTRY_RELEASE`（可选，默认 `h5@<git-sha>`）
+- `WEB_SENTRY_RELEASE`（可选，默认 `web@<git-sha>`）
+
+说明：
+
+- 本地单独构建某个应用时，继续使用该应用目录下的 `SENTRY_PROJECT` / `SENTRY_RELEASE` 即可。
+- GitHub Actions 会在同一步并行构建 `h5` 和 `web`，因此工作流里优先使用 `H5_SENTRY_*` / `WEB_SENTRY_*`，避免两个应用共用同一个 `SENTRY_PROJECT`。
 
 默认 OSS 同步路径会和当前 Vite `base` 保持一致：
 

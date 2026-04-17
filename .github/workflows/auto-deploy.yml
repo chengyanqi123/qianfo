@@ -96,6 +96,13 @@ jobs:
           DEPLOY_WEB: ${{ steps.changes.outputs.deploy_web }}
           VITE_WX_APP_ID: ${{ secrets.APP_ID }}
           VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_URL: ${{ secrets.SENTRY_URL }}
+          H5_SENTRY_PROJECT: ${{ secrets.H5_SENTRY_PROJECT }}
+          WEB_SENTRY_PROJECT: ${{ secrets.WEB_SENTRY_PROJECT }}
+          H5_SENTRY_RELEASE: ${{ secrets.H5_SENTRY_RELEASE }}
+          WEB_SENTRY_RELEASE: ${{ secrets.WEB_SENTRY_RELEASE }}
 
       - name: Validate OSS settings
         run: |

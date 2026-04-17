@@ -12,8 +12,20 @@ import Components from 'unplugin-vue-components/vite'
 
 const pathSrc = path.resolve(__dirname, 'src')
 
-function resolveSentryRelease(appName: string, env: Record<string, string>): string | undefined {
-  const explicitRelease = env.VITE_SENTRY_RELEASE || env.SENTRY_RELEASE
+function getSentryEnv(
+  env: Record<string, string>,
+  appEnvPrefix: string,
+  key: 'AUTH_TOKEN' | 'ORG' | 'PROJECT' | 'RELEASE' | 'URL',
+): string | undefined {
+  return env[`${appEnvPrefix}_SENTRY_${key}`] || env[`SENTRY_${key}`]
+}
+
+function getSentryEnvLabel(appEnvPrefix: string, key: 'AUTH_TOKEN' | 'ORG' | 'PROJECT'): string {
+  return `${appEnvPrefix}_SENTRY_${key} / SENTRY_${key}`
+}
+
+function resolveSentryRelease(appName: string, appEnvPrefix: string, env: Record<string, string>): string | undefined {
+  const explicitRelease = env.VITE_SENTRY_RELEASE || getSentryEnv(env, appEnvPrefix, 'RELEASE')
   if (explicitRelease) {
     return explicitRelease
   }
@@ -33,10 +45,25 @@ function resolveSentryRelease(appName: string, env: Record<string, string>): str
 
 export default defineConfig(({ mode }) => {
   const appName = 'web'
+  const appEnvPrefix = 'WEB'
   const env = loadEnv(mode, __dirname, '')
-  const sentryRelease = resolveSentryRelease(appName, env)
-  const hasSentryUploadConfig = Boolean(env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT)
+  const sentryAuthToken = getSentryEnv(env, appEnvPrefix, 'AUTH_TOKEN')
+  const sentryOrg = getSentryEnv(env, appEnvPrefix, 'ORG')
+  const sentryProject = getSentryEnv(env, appEnvPrefix, 'PROJECT')
+  const sentryUrl = getSentryEnv(env, appEnvPrefix, 'URL')
+  const sentryRelease = resolveSentryRelease(appName, appEnvPrefix, env)
+  const missingSentryUploadConfig = [
+    !sentryAuthToken && getSentryEnvLabel(appEnvPrefix, 'AUTH_TOKEN'),
+    !sentryOrg && getSentryEnvLabel(appEnvPrefix, 'ORG'),
+    !sentryProject && getSentryEnvLabel(appEnvPrefix, 'PROJECT'),
+  ].filter(Boolean)
+  const hasSentryUploadConfig = missingSentryUploadConfig.length === 0
+  const hasAnySentryUploadConfig = [sentryAuthToken, sentryOrg, sentryProject].some(Boolean)
   const enableSentryUpload = hasSentryUploadConfig && sentryCliBinaryExists()
+
+  if (hasAnySentryUploadConfig && !hasSentryUploadConfig) {
+    console.warn(`[sentry] 缺少 ${missingSentryUploadConfig.join('、')}，已跳过 sourcemap 上传。`)
+  }
 
   if (hasSentryUploadConfig && !enableSentryUpload) {
     console.warn('[sentry] @sentry/cli 未就绪，已跳过 sourcemap 上传。请先运行 pnpm approve-builds 放行 @sentry/cli。')
@@ -54,10 +81,10 @@ export default defineConfig(({ mode }) => {
       vue(),
       ...(enableSentryUpload
         ? sentryVitePlugin({
-            authToken: env.SENTRY_AUTH_TOKEN,
-            org: env.SENTRY_ORG,
-            project: env.SENTRY_PROJECT,
-            url: env.SENTRY_URL || undefined,
+            authToken: sentryAuthToken,
+            org: sentryOrg,
+            project: sentryProject,
+            url: sentryUrl || undefined,
             release: {
               name: sentryRelease,
             },
