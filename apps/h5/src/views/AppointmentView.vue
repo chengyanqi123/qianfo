@@ -158,7 +158,7 @@ const defaultForm: AppointmentForm = {
   time: '',
   count: 1,
   name: '',
-  useVehicle: false,
+  useVehicle: true,
   needGuide: false,
   phone: '',
   remark: '',
