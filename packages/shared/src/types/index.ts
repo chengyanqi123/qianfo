@@ -8,6 +8,9 @@ export interface Appointment {
   date: string // 'YYYY-MM-DD'
   time: string // 'HH:mm'
   count: number // 人数
+  name: string // 预约人姓名
+  useVehicle: boolean // 是否需要用车
+  needGuide: boolean // 是否需要导游
   phone: string
   status: AppointmentStatus
   remark?: string
@@ -18,6 +21,9 @@ export interface CreateAppointmentDto {
   date: string
   time: string
   count: number
+  name: string // 预约人姓名
+  useVehicle: boolean // 是否需要用车
+  needGuide: boolean // 是否需要导游
   phone: string
   remark?: string
 }

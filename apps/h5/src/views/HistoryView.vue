@@ -14,8 +14,20 @@
             </div>
             <div class="card-body">
               <div class="info-row">
+                <van-icon name="contact-o" />
+                <span>预约人：{{ item.name }}</span>
+              </div>
+              <div class="info-row">
                 <van-icon name="friends-o" />
                 <span>预约人数：{{ item.count }} 人</span>
+              </div>
+              <div class="info-row">
+                <van-icon name="guide-o" />
+                <span>需要用车：{{ item.useVehicle ? '是' : '否' }}</span>
+              </div>
+              <div class="info-row">
+                <van-icon name="flag-o" />
+                <span>需要导游：{{ item.needGuide ? '是' : '否' }}</span>
               </div>
               <div class="info-row">
                 <van-icon name="phone-o" />

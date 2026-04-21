@@ -35,6 +35,35 @@
           </template>
         </van-field>
 
+        <!-- 预约人姓名 -->
+        <van-field
+          v-model="form.name"
+          name="name"
+          label="预约人"
+          placeholder="请输入预约人姓名"
+          :rules="[{ required: true, message: '请填写预约人姓名' }]"
+        />
+
+        <!-- 是否需要用车 -->
+        <van-field name="useVehicle" label="需要用车" :rules="[{ required: true, message: '请选择是否需要用车' }]">
+          <template #input>
+            <van-radio-group v-model="form.useVehicle" direction="horizontal">
+              <van-radio :name="true">是</van-radio>
+              <van-radio :name="false">否</van-radio>
+            </van-radio-group>
+          </template>
+        </van-field>
+
+        <!-- 是否需要导游 -->
+        <van-field name="needGuide" label="需要导游" :rules="[{ required: true, message: '请选择是否需要导游' }]">
+          <template #input>
+            <van-radio-group v-model="form.needGuide" direction="horizontal">
+              <van-radio :name="true">是</van-radio>
+              <van-radio :name="false">否</van-radio>
+            </van-radio-group>
+          </template>
+        </van-field>
+
         <!-- 联系电话 -->
         <van-field
           v-model="form.phone"
@@ -111,6 +140,11 @@ import dayjs from 'dayjs'
 import { getDefaultLimit, getReserveByDate } from '@/api/setting'
 import { trackUmengEvent } from '@/analytics/umeng'
 
+type AppointmentForm = Omit<CreateAppointmentDto, 'useVehicle' | 'needGuide'> & {
+  useVehicle: boolean | null
+  needGuide: boolean | null
+}
+
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const showDatePicker = ref(false)
@@ -119,10 +153,13 @@ const showTimePicker = ref(false)
 const dateAllowRange = [new Date(), dayjs().add(1, 'month').toDate()] // 1个月内
 const timeAllowRange = ['07:00', '19:00']
 const timePickerValue = ref<string[]>(['09', '00'])
-const defaultForm: CreateAppointmentDto = {
+const defaultForm: AppointmentForm = {
   date: '',
   time: '',
   count: 1,
+  name: '',
+  useVehicle: false,
+  needGuide: false,
   phone: '',
   remark: '',
 }
@@ -288,7 +325,16 @@ function timeFilter(type: string, options: PickerOption[]) {
 // 提交和重置
 // init
 async function onSubmit() {
-  const payload = toRaw(form.value)
+  if (form.value.useVehicle === null || form.value.needGuide === null) {
+    showFailToast('请选择是否需要用车和导游')
+    return
+  }
+
+  const payload: CreateAppointmentDto = {
+    ...toRaw(form.value),
+    useVehicle: form.value.useVehicle,
+    needGuide: form.value.needGuide,
+  }
   const daysAhead = Math.max(dayjs(payload.date).diff(dayjs(), 'day'), 0)
   submitting.value = true
   loading.value = true
@@ -298,10 +344,13 @@ async function onSubmit() {
       attributes: {
         result: 'success',
         count: payload.count,
+        use_vehicle: payload.useVehicle,
+        need_guide: payload.needGuide,
         has_remark: Boolean(payload.remark),
         days_ahead: daysAhead,
       },
       data: {
+        name: payload.name,
         date: payload.date,
         time: payload.time,
       },
@@ -309,8 +358,11 @@ async function onSubmit() {
     trackUmengEvent('appointment_submit', {
       result: 'success',
       count: payload.count,
+      use_vehicle: payload.useVehicle,
+      need_guide: payload.needGuide,
       has_remark: Boolean(payload.remark),
       days_ahead: daysAhead,
+      name: payload.name,
       date: payload.date,
       time: payload.time,
     })
@@ -322,9 +374,12 @@ async function onSubmit() {
       attributes: {
         result: 'failure',
         count: payload.count,
+        use_vehicle: payload.useVehicle,
+        need_guide: payload.needGuide,
         has_remark: Boolean(payload.remark),
       },
       data: {
+        name: payload.name,
         date: payload.date,
         time: payload.time,
         reason: error?.message || 'unknown',
@@ -333,8 +388,11 @@ async function onSubmit() {
     trackUmengEvent('appointment_submit', {
       result: 'failure',
       count: payload.count,
+      use_vehicle: payload.useVehicle,
+      need_guide: payload.needGuide,
       has_remark: Boolean(payload.remark),
       days_ahead: daysAhead,
+      name: payload.name,
       date: payload.date,
       time: payload.time,
       reason: error?.message || 'unknown',
