@@ -45,7 +45,7 @@
         />
 
         <!-- 是否需要用车 -->
-        <van-field name="useVehicle" label="需要用车" :rules="[{ required: true, message: '请选择是否需要用车' }]">
+        <van-field name="useVehicle" label="需要用车" :rules="booleanFieldRules('请选择是否需要用车')">
           <template #input>
             <van-radio-group v-model="form.useVehicle" direction="horizontal">
               <van-radio :name="true">是</van-radio>
@@ -55,7 +55,7 @@
         </van-field>
 
         <!-- 是否需要导游 -->
-        <van-field name="needGuide" label="需要导游" :rules="[{ required: true, message: '请选择是否需要导游' }]">
+        <van-field name="needGuide" label="需要导游" :rules="booleanFieldRules('请选择是否需要导游')">
           <template #input>
             <van-radio-group v-model="form.needGuide" direction="horizontal">
               <van-radio :name="true">是</van-radio>
@@ -153,13 +153,19 @@ const showTimePicker = ref(false)
 const dateAllowRange = [new Date(), dayjs().add(1, 'month').toDate()] // 1个月内
 const timeAllowRange = ['07:00', '19:00']
 const timePickerValue = ref<string[]>(['09', '00'])
+const booleanFieldRules = (message: string) => [
+  {
+    validator: (value: boolean | null | undefined) => value !== null && value !== undefined,
+    message,
+  },
+]
 const defaultForm: AppointmentForm = {
   date: '',
   time: '',
   count: 1,
   name: '',
-  useVehicle: true,
-  needGuide: false,
+  useVehicle: null,
+  needGuide: null,
   phone: '',
   remark: '',
 }
