@@ -2,108 +2,112 @@
   <div>
     <!-- <van-nav-bar title="在线预约" /> -->
 
-    <div class="page-container">
-      <van-form ref="formRef" @submit="onSubmit" required="auto" class="form-card">
-        <!-- 预约日期 -->
-        <van-field
-          v-model="form.date"
-          name="date"
-          label="预约日期"
-          placeholder="请选择日期"
-          readonly
-          is-link
-          :rules="[{ required: true, message: '请选择预约日期' }]"
-          @click="showDatePicker = true"
-        />
+    <van-pull-refresh v-model="refreshing" @refresh="init">
+      <div class="page-container">
+        <van-form ref="formRef" @submit="onSubmit" required="auto" class="form-card">
+          <!-- 预约日期 -->
+          <van-field
+            v-model="form.date"
+            name="date"
+            label="预约日期"
+            placeholder="请选择日期"
+            readonly
+            is-link
+            :rules="[{ required: true, message: '请选择预约日期' }]"
+            @click="showDatePicker = true"
+          />
 
-        <!-- 预约时间 -->
-        <van-field
-          v-model="form.time"
-          name="time"
-          label="预约时间"
-          placeholder="请选择时间"
-          readonly
-          is-link
-          :rules="[{ required: true, message: '请选择预约时间' }]"
-          @click="showTimePicker = true"
-        />
+          <!-- 预约时间 -->
+          <van-field
+            v-model="form.time"
+            name="time"
+            label="预约时间"
+            placeholder="请选择时间"
+            readonly
+            is-link
+            :rules="[{ required: true, message: '请选择预约时间' }]"
+            @click="showTimePicker = true"
+          />
 
-        <!-- 预约人姓名 -->
-        <van-field
-          v-model="form.name"
-          name="name"
-          label="预约人"
-          placeholder="请输入预约人姓名"
-          clearable
-          :rules="[{ required: true, message: '请填写预约人姓名' }]"
-          @blur="autoFill('name')"
-        />
+          <!-- 预约人姓名 -->
+          <van-field
+            v-model="form.name"
+            name="name"
+            label="预约人"
+            placeholder="请输入预约人姓名"
+            clearable
+            :rules="[{ required: true, message: '请填写预约人姓名' }]"
+            @blur="autoFill('name')"
+          />
 
-        <!-- 联系电话 -->
-        <van-field
-          v-model="form.phone"
-          name="phone"
-          label="联系电话"
-          placeholder="请输入联系电话"
-          type="tel"
-          clearable
-          :rules="[
-            { required: true, message: '请填写联系电话' },
-            { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
-          ]"
-          @blur="autoFill('phone')"
-        >
-          <!-- <template #button>
+          <!-- 联系电话 -->
+          <van-field
+            v-model="form.phone"
+            name="phone"
+            label="联系电话"
+            placeholder="请输入联系电话"
+            type="tel"
+            clearable
+            :rules="[
+              { required: true, message: '请填写联系电话' },
+              { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
+            ]"
+            @blur="autoFill('phone')"
+          >
+            <!-- <template #button>
             <van-button size="small" type="primary" plain @click="handleSendCode"> 发送验证码 </van-button>
           </template> -->
-        </van-field>
+          </van-field>
 
-        <!-- 人数 -->
-        <van-field name="count" label="预约人数" :rules="[{ required: true }]">
-          <template #input>
-            <van-stepper v-model="form.count" min="1" max="10" />
-          </template>
-        </van-field>
+          <!-- 人数 -->
+          <van-field name="count" label="预约人数" :rules="[{ required: true }]">
+            <template #input>
+              <van-stepper v-model="form.count" min="1" max="10" />
+            </template>
+          </van-field>
 
-        <!-- 是否需要用车 -->
-        <van-field name="useVehicle" label="需要用车" :rules="booleanFieldRules('请选择是否需要用车')">
-          <template #input>
-            <van-radio-group v-model="form.useVehicle" direction="horizontal">
-              <van-radio :name="true">是</van-radio>
-              <van-radio :name="false">否</van-radio>
-            </van-radio-group>
-          </template>
-        </van-field>
+          <!-- 是否需要用车 -->
+          <van-field name="useVehicle" label="需要用车" :rules="booleanFieldRules('请选择是否需要用车')">
+            <template #input>
+              <van-radio-group v-model="form.useVehicle" direction="horizontal">
+                <van-radio :name="true">是</van-radio>
+                <van-radio :name="false">否</van-radio>
+              </van-radio-group>
+            </template>
+          </van-field>
 
-        <!-- 是否需要导赏员 -->
-        <van-field name="needGuide" label="需要导赏员" :rules="booleanFieldRules('请选择是否需要导赏员')">
-          <template #input>
-            <van-radio-group v-model="form.needGuide" direction="horizontal">
-              <van-radio :name="true">是</van-radio>
-              <van-radio :name="false">否</van-radio>
-            </van-radio-group>
-          </template>
-        </van-field>
+          <!-- 是否需要导赏员 -->
+          <van-field name="needGuide" label="需要导赏员" :rules="booleanFieldRules('请选择是否需要导赏员')">
+            <template #input>
+              <van-radio-group v-model="form.needGuide" direction="horizontal">
+                <van-radio :name="true">是</van-radio>
+                <van-radio :name="false">否</van-radio>
+              </van-radio-group>
+            </template>
+          </van-field>
 
-        <!-- 备注 -->
-        <van-field
-          v-model="form.remark"
-          name="remark"
-          label="备注"
-          type="textarea"
-          rows="2"
-          autosize
-          placeholder="选填，如特殊需求"
-          maxlength="100"
-          show-word-limit
-          :rules="[{ required: false, message: '备注不能超过80字', validator: (value: string) => value.length <= 80 }]"
-        />
+          <!-- 备注 -->
+          <van-field
+            v-model="form.remark"
+            name="remark"
+            label="备注"
+            type="textarea"
+            rows="2"
+            autosize
+            placeholder="选填，如特殊需求"
+            maxlength="100"
+            show-word-limit
+            :rules="[
+              { required: false, message: '备注不能超过80字', validator: (value: string) => value.length <= 80 },
+            ]"
+          />
 
-        <div class="submit-btn">
-          <van-button round block type="primary" native-type="submit" :loading="submitting"> 提交预约 </van-button>
-        </div>
-      </van-form>
-    </div>
+          <div class="submit-btn">
+            <van-button round block type="primary" native-type="submit" :loading="submitting"> 提交预约 </van-button>
+          </div>
+        </van-form>
+      </div>
+    </van-pull-refresh>
 
     <!-- 日期选择器 -->
     <van-calendar
@@ -126,18 +130,11 @@
         @cancel="showTimePicker = false"
       />
     </van-popup>
-
-    <!-- loading -->
-    <van-overlay :show="loading" z-index="9999">
-      <div class="loading-wrapper">
-        <van-loading />
-      </div>
-    </van-overlay>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, toRaw } from 'vue'
+import { onMounted, ref, toRaw } from 'vue'
 import { showSuccessToast, showFailToast, type FormInstance, type PickerOption } from 'vant'
 import { submitAppointment } from '@/api/appointment'
 import { trackMonitorEvent, type CreateAppointmentDto } from '@qianfo/shared'
@@ -145,6 +142,7 @@ import dayjs from 'dayjs'
 import { getDefaultLimit, getReserveByDate } from '@/api/setting'
 import { trackUmengEvent } from '@/analytics/umeng'
 import { useAppointmentHistory } from '@/hooks/useAppointmentHistory'
+defineOptions({ name: 'AppointmentView' })
 
 type AppointmentForm = Omit<CreateAppointmentDto, 'useVehicle' | 'needGuide'> & {
   useVehicle: boolean | null
@@ -152,9 +150,11 @@ type AppointmentForm = Omit<CreateAppointmentDto, 'useVehicle' | 'needGuide'> & 
 }
 
 const formRef = ref<FormInstance>()
-const submitting = ref(false)
 const showDatePicker = ref(false)
 const showTimePicker = ref(false)
+const inited = ref(false)
+const refreshing = ref(false)
+const submitting = ref(false)
 //
 const { getHistory, addHistory } = useAppointmentHistory()
 //
@@ -163,6 +163,7 @@ const timeAllowRange = ['07:00', '19:00']
 const timePickerValue = ref<string[]>(['09', '00'])
 const booleanFieldRules = (message: string) => [
   {
+    required: true,
     validator: (value: boolean | null | undefined) => value !== null && value !== undefined,
     message,
   },
@@ -184,12 +185,8 @@ const setting = ref({
 const daliys = ref<Awaited<ReturnType<typeof getReserveByDate>>>({})
 
 // 初始化
-const loading = ref(false)
-const inited = ref(false)
-init()
 async function init() {
   inited.value = false
-  loading.value = true
   getDefaultLimit()
     .then((data) => {
       setting.value.totalLimit = data
@@ -208,9 +205,10 @@ async function init() {
     })
     .finally(() => {
       inited.value = true
-      loading.value = false
+      refreshing.value = false
     })
 }
+onMounted(init)
 
 // 日期选择
 function onCalendarConfirm(value: Date) {
@@ -340,20 +338,19 @@ function timeFilter(type: string, options: PickerOption[]) {
 function autoFill(field: 'name' | 'phone') {
   if (field === 'name') {
     if (form.value.phone) return
-    const phone = getHistory(form.value.phone)
-    phone && (form.value.name = phone)
+    const phone = getHistory(form.value.name)
+    phone && (form.value.phone = phone)
     return
   }
   if (field === 'phone') {
     if (form.value.name) return
-    const name = getHistory(form.value.name)
-    name && (form.value.phone = name)
+    const name = getHistory(form.value.phone)
+    name && (form.value.name = name)
     return
   }
 }
 
 // 提交和重置
-// init
 async function onSubmit() {
   if (form.value.useVehicle === null || form.value.needGuide === null) {
     showFailToast('请选择是否需要用车和导赏员')
@@ -367,7 +364,6 @@ async function onSubmit() {
   }
   const daysAhead = Math.max(dayjs(payload.date).diff(dayjs(), 'day'), 0)
   submitting.value = true
-  loading.value = true
   try {
     await submitAppointment(payload)
     trackMonitorEvent('appointment_submit', {
@@ -432,7 +428,6 @@ async function onSubmit() {
     })
   } finally {
     submitting.value = false
-    loading.value = false
   }
 }
 function resetForm() {
@@ -442,6 +437,11 @@ function resetForm() {
 </script>
 
 <style scoped>
+.page-container {
+  min-height: 100vh;
+  width: 100%;
+}
+
 .form-card {
   margin: 16px;
   border-radius: 12px;

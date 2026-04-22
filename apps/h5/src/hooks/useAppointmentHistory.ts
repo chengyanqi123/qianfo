@@ -15,11 +15,13 @@ export function useAppointmentHistory() {
   )
 
   function addHistory(key: string, value: string) {
-    history.value[key] = value
+    history.value[(history.value[key] = value)] = key
   }
 
   function removeHistory(key: string) {
+    const value = history.value[key]
     delete history.value[key]
+    value && delete history.value[value]
   }
 
   function getHistory(key: string) {
