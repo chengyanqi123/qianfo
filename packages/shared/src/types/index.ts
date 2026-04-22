@@ -10,11 +10,11 @@ export interface Appointment {
   count: number // 人数
   name: string // 预约人姓名
   useVehicle: boolean // 是否需要用车
-  needGuide: boolean // 是否需要导游
+  needGuide: boolean // 是否需要导赏员
   phone: string
   status: AppointmentStatus
-  remark?: string
   createdAt: string
+  remark?: string
 }
 
 export interface CreateAppointmentDto {
@@ -23,7 +23,7 @@ export interface CreateAppointmentDto {
   count: number
   name: string // 预约人姓名
   useVehicle: boolean // 是否需要用车
-  needGuide: boolean // 是否需要导游
+  needGuide: boolean // 是否需要导赏员
   phone: string
   remark?: string
 }

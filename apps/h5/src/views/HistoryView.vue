@@ -27,7 +27,7 @@
               </div>
               <div class="info-row">
                 <van-icon name="flag-o" />
-                <span>需要导游：{{ item.needGuide ? '是' : '否' }}</span>
+                <span>需要导赏员：{{ item.needGuide ? '是' : '否' }}</span>
               </div>
               <div class="info-row">
                 <van-icon name="phone-o" />

@@ -3,7 +3,7 @@
     <!-- <van-nav-bar title="在线预约" /> -->
 
     <div class="page-container">
-      <van-form ref="formRef" @submit="onSubmit" class="form-card">
+      <van-form ref="formRef" @submit="onSubmit" required class="form-card">
         <!-- 预约日期 -->
         <van-field
           v-model="form.date"
@@ -12,6 +12,7 @@
           placeholder="请选择日期"
           readonly
           is-link
+          left-icon="calendar-o"
           :rules="[{ required: true, message: '请选择预约日期' }]"
           @click="showDatePicker = true"
         />
@@ -24,16 +25,10 @@
           placeholder="请选择时间"
           readonly
           is-link
+          left-icon="clock-o"
           :rules="[{ required: true, message: '请选择预约时间' }]"
           @click="showTimePicker = true"
         />
-
-        <!-- 人数 -->
-        <van-field name="count" label="预约人数" :rules="[{ required: true }]">
-          <template #input>
-            <van-stepper v-model="form.count" min="1" max="10" />
-          </template>
-        </van-field>
 
         <!-- 预约人姓名 -->
         <van-field
@@ -41,28 +36,11 @@
           name="name"
           label="预约人"
           placeholder="请输入预约人姓名"
+          clearable
+          left-icon="contact-o"
           :rules="[{ required: true, message: '请填写预约人姓名' }]"
+          @blur="autoFill('name')"
         />
-
-        <!-- 是否需要用车 -->
-        <van-field name="useVehicle" label="需要用车" :rules="booleanFieldRules('请选择是否需要用车')">
-          <template #input>
-            <van-radio-group v-model="form.useVehicle" direction="horizontal">
-              <van-radio :name="true">是</van-radio>
-              <van-radio :name="false">否</van-radio>
-            </van-radio-group>
-          </template>
-        </van-field>
-
-        <!-- 是否需要导游 -->
-        <van-field name="needGuide" label="需要导赏员" :rules="booleanFieldRules('请选择是否需要导赏员')">
-          <template #input>
-            <van-radio-group v-model="form.needGuide" direction="horizontal">
-              <van-radio :name="true">是</van-radio>
-              <van-radio :name="false">否</van-radio>
-            </van-radio-group>
-          </template>
-        </van-field>
 
         <!-- 联系电话 -->
         <van-field
@@ -71,14 +49,54 @@
           label="联系电话"
           placeholder="请输入联系电话"
           type="tel"
+          clearable
+          left-icon="phone-o"
           :rules="[
             { required: true, message: '请填写联系电话' },
             { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
           ]"
+          @blur="autoFill('phone')"
         >
           <!-- <template #button>
             <van-button size="small" type="primary" plain @click="handleSendCode"> 发送验证码 </van-button>
           </template> -->
+        </van-field>
+
+        <!-- 人数 -->
+        <van-field name="count" label="预约人数" left-icon="friends-o" :rules="[{ required: true }]">
+          <template #input>
+            <van-stepper v-model="form.count" min="1" max="10" />
+          </template>
+        </van-field>
+
+        <!-- 是否需要用车 -->
+        <van-field
+          name="useVehicle"
+          label="需要用车"
+          left-icon="guide-o"
+          :rules="booleanFieldRules('请选择是否需要用车')"
+        >
+          <template #input>
+            <van-radio-group v-model="form.useVehicle" direction="horizontal">
+              <van-radio :name="true">是</van-radio>
+              <van-radio :name="false">否</van-radio>
+            </van-radio-group>
+          </template>
+        </van-field>
+
+        <!-- 是否需要导赏员 -->
+        <van-field
+          name="needGuide"
+          label="需要导赏员"
+          left-icon="flag-o"
+          :rules="booleanFieldRules('请选择是否需要导赏员')"
+        >
+          <template #input>
+            <van-radio-group v-model="form.needGuide" direction="horizontal">
+              <van-radio :name="true">是</van-radio>
+              <van-radio :name="false">否</van-radio>
+            </van-radio-group>
+          </template>
         </van-field>
 
         <!-- 备注 -->
@@ -89,6 +107,7 @@
           type="textarea"
           rows="2"
           autosize
+          left-icon="notes-o"
           placeholder="选填，如特殊需求"
           maxlength="100"
           show-word-limit
@@ -139,6 +158,7 @@ import { trackMonitorEvent, type CreateAppointmentDto } from '@qianfo/shared'
 import dayjs from 'dayjs'
 import { getDefaultLimit, getReserveByDate } from '@/api/setting'
 import { trackUmengEvent } from '@/analytics/umeng'
+import { useAppointmentHistory } from '@/hooks/useAppointmentHistory'
 
 type AppointmentForm = Omit<CreateAppointmentDto, 'useVehicle' | 'needGuide'> & {
   useVehicle: boolean | null
@@ -149,6 +169,8 @@ const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const showDatePicker = ref(false)
 const showTimePicker = ref(false)
+//
+const { getHistory, addHistory } = useAppointmentHistory()
 //
 const dateAllowRange = [new Date(), dayjs().add(1, 'month').toDate()] // 1个月内
 const timeAllowRange = ['07:00', '19:00']
@@ -328,18 +350,34 @@ function timeFilter(type: string, options: PickerOption[]) {
   return options
 }
 
+// 自动填充
+function autoFill(field: 'name' | 'phone') {
+  if (field === 'name') {
+    if (!form.value.phone) return
+    const phone = getHistory(form.value.phone)
+    phone && (form.value.name = phone)
+    return
+  }
+  if (field === 'phone') {
+    if (!form.value.name) return
+    const name = getHistory(form.value.name)
+    name && (form.value.phone = name)
+    return
+  }
+}
+
 // 提交和重置
 // init
 async function onSubmit() {
   if (form.value.useVehicle === null || form.value.needGuide === null) {
-    showFailToast('请选择是否需要用车和导游')
+    showFailToast('请选择是否需要用车和导赏员')
     return
   }
 
   const payload: CreateAppointmentDto = {
     ...toRaw(form.value),
-    useVehicle: form.value.useVehicle,
-    needGuide: form.value.needGuide,
+    useVehicle: form.value.useVehicle as boolean,
+    needGuide: form.value.needGuide as boolean,
   }
   const daysAhead = Math.max(dayjs(payload.date).diff(dayjs(), 'day'), 0)
   submitting.value = true
@@ -372,7 +410,10 @@ async function onSubmit() {
       date: payload.date,
       time: payload.time,
     })
+
     showSuccessToast('预约成功！')
+    addHistory(form.value.name, form.value.phone)
+
     resetForm()
     await init()
   } catch (error: any) {
