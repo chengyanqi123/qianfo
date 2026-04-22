@@ -354,13 +354,13 @@ function timeFilter(type: string, options: PickerOption[]) {
 // 自动填充
 function autoFill(field: 'name' | 'phone') {
   if (field === 'name') {
-    if (!form.value.phone) return
+    if (form.value.phone) return
     const phone = getHistory(form.value.phone)
     phone && (form.value.name = phone)
     return
   }
   if (field === 'phone') {
-    if (!form.value.name) return
+    if (form.value.name) return
     const name = getHistory(form.value.name)
     name && (form.value.phone = name)
     return
