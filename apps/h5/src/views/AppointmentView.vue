@@ -3,7 +3,7 @@
     <!-- <van-nav-bar title="在线预约" /> -->
 
     <div class="page-container">
-      <van-form ref="formRef" @submit="onSubmit" required class="form-card">
+      <van-form ref="formRef" @submit="onSubmit" required="auto" class="form-card">
         <!-- 预约日期 -->
         <van-field
           v-model="form.date"
@@ -12,7 +12,6 @@
           placeholder="请选择日期"
           readonly
           is-link
-          left-icon="calendar-o"
           :rules="[{ required: true, message: '请选择预约日期' }]"
           @click="showDatePicker = true"
         />
@@ -25,7 +24,6 @@
           placeholder="请选择时间"
           readonly
           is-link
-          left-icon="clock-o"
           :rules="[{ required: true, message: '请选择预约时间' }]"
           @click="showTimePicker = true"
         />
@@ -37,7 +35,6 @@
           label="预约人"
           placeholder="请输入预约人姓名"
           clearable
-          left-icon="contact-o"
           :rules="[{ required: true, message: '请填写预约人姓名' }]"
           @blur="autoFill('name')"
         />
@@ -50,7 +47,6 @@
           placeholder="请输入联系电话"
           type="tel"
           clearable
-          left-icon="phone-o"
           :rules="[
             { required: true, message: '请填写联系电话' },
             { pattern: /^1[3-9]\d{9}$/, message: '请填写正确的联系电话' },
@@ -63,19 +59,14 @@
         </van-field>
 
         <!-- 人数 -->
-        <van-field name="count" label="预约人数" left-icon="friends-o" :rules="[{ required: true }]">
+        <van-field name="count" label="预约人数" :rules="[{ required: true }]">
           <template #input>
             <van-stepper v-model="form.count" min="1" max="10" />
           </template>
         </van-field>
 
         <!-- 是否需要用车 -->
-        <van-field
-          name="useVehicle"
-          label="需要用车"
-          left-icon="guide-o"
-          :rules="booleanFieldRules('请选择是否需要用车')"
-        >
+        <van-field name="useVehicle" label="需要用车" :rules="booleanFieldRules('请选择是否需要用车')">
           <template #input>
             <van-radio-group v-model="form.useVehicle" direction="horizontal">
               <van-radio :name="true">是</van-radio>
@@ -85,12 +76,7 @@
         </van-field>
 
         <!-- 是否需要导赏员 -->
-        <van-field
-          name="needGuide"
-          label="需要导赏员"
-          left-icon="flag-o"
-          :rules="booleanFieldRules('请选择是否需要导赏员')"
-        >
+        <van-field name="needGuide" label="需要导赏员" :rules="booleanFieldRules('请选择是否需要导赏员')">
           <template #input>
             <van-radio-group v-model="form.needGuide" direction="horizontal">
               <van-radio :name="true">是</van-radio>
@@ -107,7 +93,6 @@
           type="textarea"
           rows="2"
           autosize
-          left-icon="notes-o"
           placeholder="选填，如特殊需求"
           maxlength="100"
           show-word-limit
