@@ -6,7 +6,7 @@
     <el-card shadow="never" class="filter-card">
       <el-form :model="filter" :label-position="isMobile ? 'top' : 'right'" label-width="70px">
         <el-row :gutter="12">
-          <el-col :xs="24" :sm="12" :md="8">
+          <el-col :xs="24" :sm="24" :md="12">
             <el-form-item label="日期范围">
               <el-date-picker
                 v-model="dateRange"
@@ -20,7 +20,12 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :xs="12" :sm="6" :md="4">
+          <el-col :xs="12" :sm="12" :md="6">
+            <el-form-item label="手机号">
+              <el-input v-model="filter.phone" placeholder="搜索手机号" clearable style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="12" :md="6">
             <el-form-item label="状态">
               <el-select v-model="filter.status" clearable placeholder="全部" style="width: 100%">
                 <el-option label="待确认" value="pending" />
@@ -29,14 +34,42 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :xs="12" :sm="6" :md="5">
-            <el-form-item label="手机号">
-              <el-input v-model="filter.phone" placeholder="搜索手机号" clearable style="width: 100%" />
+        </el-row>
+
+        <el-row v-show="filterExpanded" :gutter="12">
+          <el-col :xs="12" :sm="12" :md="6">
+            <el-form-item label="姓名">
+              <el-input v-model="filter.name" placeholder="搜索预约人姓名" clearable style="width: 100%" />
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="24" :md="7">
-            <el-form-item :label="isMobile ? '' : ' '">
+          <el-col :xs="12" :sm="12" :md="6">
+            <el-form-item label="需导赏员">
+              <el-select v-model="filter.needGuide" clearable style="width: 100%">
+                <el-option label="是" :value="true" />
+                <el-option label="否" :value="false" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="12" :md="6">
+            <el-form-item label="需用车">
+              <el-select v-model="filter.useVehicle" clearable style="width: 100%">
+                <el-option label="是" :value="true" />
+                <el-option label="否" :value="false" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="12">
+          <el-col :xs="24" :sm="24" :md="24">
+            <el-form-item>
               <div class="filter-actions">
+                <el-button link :class="{ 'toggle-btn': isMobile }" @click="filterExpanded = !filterExpanded">
+                  {{ filterExpanded ? '收起筛选' : '展开筛选' }}
+                  <el-icon class="toggle-icon">
+                    <ArrowUp v-if="filterExpanded" />
+                    <ArrowDown v-else />
+                  </el-icon>
+                </el-button>
                 <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
                 <el-button :icon="Refresh" @click="onReset">重置</el-button>
               </div>
@@ -63,12 +96,12 @@
           </el-table-column>
           <el-table-column prop="count" label="人数" width="70" align="center" />
           <el-table-column prop="name" label="姓名" width="120" align="center" />
-          <el-table-column prop="needGuide" label="导游" width="70" align="center">
+          <el-table-column prop="needGuide" label="需导赏员" width="100" align="center">
             <template #default="{ row }">
               <el-checkbox :value="row.needGuide" disabled size="large" />
             </template>
           </el-table-column>
-          <el-table-column prop="useVehicle" label="用车" width="70" align="center">
+          <el-table-column prop="useVehicle" label="需用车" width="80" align="center">
             <template #default="{ row }">
               <el-checkbox :value="row.useVehicle" disabled size="large" />
             </template>
@@ -84,7 +117,7 @@
           <el-table-column prop="createdAt" label="提交时间" width="170">
             <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
           </el-table-column>
-          <el-table-column label="操作" :width="isMobile ? '56' : '160'" fixed="right" align="center">
+          <el-table-column class="action" label="操作" :width="isMobile ? '56' : '160'" fixed="right" align="center">
             <template #default="{ row }">
               <template v-if="isMobile">
                 <template v-if="row.status !== 'cancelled'">
@@ -146,10 +179,10 @@
         <el-pagination
           v-model:current-page="filter.page"
           v-model:page-size="filter.pageSize"
+          :pager-count="isMobile ? 3 : 7"
           :total="total"
           :page-sizes="[10, 20, 50]"
           :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
-          :pager-count="isMobile ? 5 : 7"
           background
           @change="fetchData"
         />
@@ -161,12 +194,13 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh } from '@element-plus/icons-vue'
+import { Search, Refresh, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { getAppointments, updateAppointmentStatus } from '@/api/appointment'
 import { trackMonitorEvent, type Appointment, type AppointmentStatus } from '@qianfo/shared'
 import { useIsMobile } from '@/composables/useIsMobile'
 
 const { isMobile } = useIsMobile()
+const filterExpanded = ref(false)
 const loading = ref(false)
 const tableData = ref<Appointment[]>([])
 const total = ref(0)
@@ -177,6 +211,9 @@ const filter = reactive({
   pageSize: 10,
   phone: '',
   status: '' as AppointmentStatus | '',
+  name: undefined,
+  needGuide: undefined,
+  useVehicle: undefined,
   dateStart: '',
   dateEnd: '',
 })
@@ -223,6 +260,9 @@ function onSearch() {
 function onReset() {
   filter.phone = ''
   filter.status = ''
+  filter.name = undefined
+  filter.needGuide = undefined
+  filter.useVehicle = undefined
   dateRange.value = null
   filter.page = 1
   fetchData()
@@ -292,9 +332,19 @@ onMounted(fetchData)
 }
 
 .filter-actions {
+  width: 100%;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.toggle-btn {
+  margin-right: auto;
+}
+
+.toggle-icon {
+  margin-left: 4px;
 }
 
 /* 表格横向滚动容器 */
@@ -326,5 +376,10 @@ onMounted(fetchData)
     font-size: 17px;
     margin-bottom: 12px;
   }
+}
+:deep(.el-table-fixed-column--right > .cell) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>

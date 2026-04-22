@@ -55,7 +55,7 @@
         </van-field>
 
         <!-- 是否需要导游 -->
-        <van-field name="needGuide" label="需要导游" :rules="booleanFieldRules('请选择是否需要导游')">
+        <van-field name="needGuide" label="需要导赏员" :rules="booleanFieldRules('请选择是否需要导赏员')">
           <template #input>
             <van-radio-group v-model="form.needGuide" direction="horizontal">
               <van-radio :name="true">是</van-radio>

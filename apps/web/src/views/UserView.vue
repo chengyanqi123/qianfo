@@ -56,7 +56,7 @@
           :total="total"
           :page-sizes="[10, 20, 50]"
           :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
-          :pager-count="isMobile ? 5 : 7"
+          :pager-count="isMobile ? 3 : 7"
           background
           @change="fetchData"
         />
