@@ -111,6 +111,7 @@
           placeholder="选填，如特殊需求"
           maxlength="100"
           show-word-limit
+          :rules="[{ required: false, message: '备注不能超过80字', validator: (value: string) => value.length <= 80 }]"
         />
 
         <div class="submit-btn">
