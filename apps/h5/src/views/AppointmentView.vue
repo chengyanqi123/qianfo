@@ -4,7 +4,7 @@
 
     <van-pull-refresh v-model="refreshing" @refresh="init">
       <div class="page-container">
-        <van-form ref="formRef" @submit="onSubmit" required="auto" class="form-card">
+        <van-form ref="formRef" @submit="onSubmit" class="form-card">
           <!-- 预约日期 -->
           <van-field
             v-model="form.date"
@@ -163,7 +163,6 @@ const timeAllowRange = ['07:00', '19:00']
 const timePickerValue = ref<string[]>(['09', '00'])
 const booleanFieldRules = (message: string) => [
   {
-    required: true,
     validator: (value: boolean | null | undefined) => value !== null && value !== undefined,
     message,
   },
