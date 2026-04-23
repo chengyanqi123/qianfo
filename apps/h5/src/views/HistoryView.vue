@@ -7,10 +7,18 @@
         <van-empty v-if="!loading && list.length === 0" description="暂无预约记录" image="search" />
 
         <div v-else class="card-list">
-          <div v-for="item in list" :key="item.id" class="appointment-card">
+          <div
+            class="appointment-card"
+            :class="{ expired: isExpired(`${item.date} ${item.time}`) }"
+            v-for="item in list"
+            :key="item.id"
+          >
             <div class="card-header">
               <span class="date-time">{{ item.date }} {{ item.time }}</span>
-              <span class="status" :class="statusTagType(item.status)">{{ statusText(item.status) }}</span>
+              <span v-if="isExpired(`${item.date} ${item.time}`) && item.status === 'pending'" class="status expired">
+                已过期
+              </span>
+              <span v-else class="status" :class="statusTagType(item.status)">{{ statusText(item.status) }}</span>
             </div>
             <div class="card-body">
               <div class="info-row">
@@ -40,19 +48,9 @@
             </div>
             <div class="card-footer">
               <span class="created-at">提交于 {{ formatTime(item.createdAt) }}</span>
-              <div class="btns">
+              <div v-if="!isExpired(`${item.date} ${item.time}`) && item.status === 'pending'">
+                <van-button size="small" type="primary" plain round @click.stop="showQrCode(item)"> 去核销 </van-button>
                 <van-button
-                  v-if="getQRVisible(item)"
-                  size="small"
-                  type="primary"
-                  plain
-                  round
-                  @click.stop="showQrCode(item)"
-                >
-                  去核销
-                </van-button>
-                <van-button
-                  v-if="item.status === 'pending'"
                   style="margin-left: 12px"
                   size="small"
                   type="danger"
@@ -150,6 +148,13 @@ async function fetchList(reset = false) {
       list.value = []
       noMore.value = false
     }
+    if (import.meta.env.DEV) {
+      const start = (page.value - 1) * pageSize
+      const pageList = mockList.slice(start, start + pageSize)
+      list.value = reset ? pageList : [...list.value, ...pageList]
+      noMore.value = list.value.length >= mockList.length
+      return
+    }
     const res = await getAppointmentHistory(page.value, pageSize)
     list.value = reset ? res.list : [...list.value, ...res.list]
     noMore.value = list.value.length >= res.total
@@ -172,15 +177,8 @@ function loadMore() {
 
 onMounted(() => fetchList(true))
 
-// 只有未过期且已确认的预约才显示二维码
-const getQRVisible = (item: Appointment) => {
-  if (item.status !== 'pending') return false
-
-  const day = dayjs(`${item.date} ${item.time}`)
-  if (day.isBefore(dayjs())) return false
-
-  return true
-}
+// 是否过期。
+const isExpired = (date: string | Date) => dayjs(date).isBefore(dayjs())
 
 let loopId: NodeJS.Timeout
 async function showQrCode(item: Appointment) {
@@ -317,6 +315,11 @@ async function onCancel(item: Appointment) {
   padding: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
+.appointment-card.expired {
+  background-color: #faf9fb;
+  color: #57575b;
+  opacity: 0.8;
+}
 
 .card-header {
   display: flex;
@@ -350,6 +353,10 @@ async function onCancel(item: Appointment) {
 .status.danger {
   color: #ee0a24;
   background: #fff0f0;
+}
+.status.expired {
+  color: #666467;
+  background: #e9e9eb;
 }
 
 .card-body {
