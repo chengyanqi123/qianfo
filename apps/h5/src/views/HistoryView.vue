@@ -42,7 +42,7 @@
               <span class="created-at">提交于 {{ formatTime(item.createdAt) }}</span>
               <div class="btns">
                 <van-button
-                  v-if="item.status === 'pending'"
+                  v-if="getQRVisible(item)"
                   size="small"
                   type="primary"
                   plain
@@ -105,6 +105,7 @@ import { getAppointmentHistory, cancelAppointment, getAppointmentStatus } from '
 import { trackMonitorEvent, type Appointment, type AppointmentStatus } from '@qianfo/shared'
 import QRCode from 'qrcode'
 import { trackUmengEvent } from '@/analytics/umeng'
+import dayjs from 'dayjs'
 
 const list = ref<Appointment[]>([])
 const loading = ref(false)
@@ -170,6 +171,16 @@ function loadMore() {
 }
 
 onMounted(() => fetchList(true))
+
+// 只有未过期且已确认的预约才显示二维码
+const getQRVisible = (item: Appointment) => {
+  if (item.status !== 'pending') return false
+
+  const day = dayjs(`${item.date} ${item.time}`)
+  if (day.isBefore(dayjs())) return false
+
+  return true
+}
 
 let loopId: NodeJS.Timeout
 async function showQrCode(item: Appointment) {
