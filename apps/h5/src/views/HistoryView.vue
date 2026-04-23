@@ -148,13 +148,6 @@ async function fetchList(reset = false) {
       list.value = []
       noMore.value = false
     }
-    if (import.meta.env.DEV) {
-      const start = (page.value - 1) * pageSize
-      const pageList = mockList.slice(start, start + pageSize)
-      list.value = reset ? pageList : [...list.value, ...pageList]
-      noMore.value = list.value.length >= mockList.length
-      return
-    }
     const res = await getAppointmentHistory(page.value, pageSize)
     list.value = reset ? res.list : [...list.value, ...res.list]
     noMore.value = list.value.length >= res.total
