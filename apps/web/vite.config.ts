@@ -69,6 +69,25 @@ export default defineConfig(({ mode }) => {
     console.warn('[sentry] @sentry/cli 未就绪，已跳过 sourcemap 上传。请先运行 pnpm approve-builds 放行 @sentry/cli。')
   }
 
+  const sentryViteConfig: Parameters<typeof sentryVitePlugin>[0] = {
+    authToken: sentryAuthToken,
+    org: sentryOrg,
+    project: sentryProject,
+    url: sentryUrl || undefined,
+    release: {
+      name: sentryRelease,
+    },
+    sourcemaps: {
+      assets: './dist/**',
+      filesToDeleteAfterUpload: ['./dist/**/*.js.map', './dist/**/*.css.map'],
+    },
+    telemetry: false,
+    errorHandler(error) {
+      console.warn(`[sentry] ${error.message}`)
+    },
+  }
+  console.log('web -> sentryViteConfig: ', sentryViteConfig)
+
   return {
     base: '/web/',
     define: {
@@ -79,25 +98,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       vue(),
-      ...(enableSentryUpload
-        ? sentryVitePlugin({
-            authToken: sentryAuthToken,
-            org: sentryOrg,
-            project: sentryProject,
-            url: sentryUrl || undefined,
-            release: {
-              name: sentryRelease,
-            },
-            sourcemaps: {
-              assets: './dist/**',
-              filesToDeleteAfterUpload: ['./dist/**/*.js.map', './dist/**/*.css.map'],
-            },
-            telemetry: false,
-            errorHandler(error) {
-              console.warn(`[sentry] ${error.message}`)
-            },
-          })
-        : []),
+      ...(enableSentryUpload ? sentryVitePlugin(sentryViteConfig) : []),
       AutoImport({
         imports: ['vue', 'vue-router', 'pinia'],
         // Auto import functions from Element Plus, e.g. ElMessage, ElMessageBox... (with style)
