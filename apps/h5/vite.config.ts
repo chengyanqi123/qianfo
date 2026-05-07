@@ -15,6 +15,10 @@ function getSentryEnv(
   return env[`${appEnvPrefix}_SENTRY_${key}`] || env[`SENTRY_${key}`]
 }
 
+function resolveSentryDsn(appEnvPrefix: string, env: Record<string, string>): string | undefined {
+  return env.VITE_SENTRY_DSN || env[`${appEnvPrefix}_SENTRY_DSN`] || env.SENTRY_DSN
+}
+
 function getSentryEnvLabel(appEnvPrefix: string, key: 'AUTH_TOKEN' | 'ORG' | 'PROJECT'): string {
   return `${appEnvPrefix}_SENTRY_${key} / SENTRY_${key}`
 }
@@ -47,6 +51,7 @@ export default defineConfig(({ mode }) => {
   const sentryOrg = getSentryEnv(env, appEnvPrefix, 'ORG')
   const sentryProject = getSentryEnv(env, appEnvPrefix, 'PROJECT')
   const sentryUrl = getSentryEnv(env, appEnvPrefix, 'URL')
+  const sentryDsn = resolveSentryDsn(appEnvPrefix, env)
   const sentryRelease = resolveSentryRelease(appName, appEnvPrefix, env)
   const missingSentryUploadConfig = [
     !sentryAuthToken && getSentryEnvLabel(appEnvPrefix, 'AUTH_TOKEN'),
@@ -87,6 +92,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/h5/',
     define: {
+      'import.meta.env.VITE_SENTRY_DSN': JSON.stringify(sentryDsn),
       'import.meta.env.VITE_SENTRY_RELEASE': JSON.stringify(sentryRelease),
     },
     build: {
