@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { shallowRef, watch } from 'vue'
+import { onMounted, shallowRef, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import SafetyNoticeDialog from '@/components/SafetyNoticeDialog.vue'
 
@@ -23,12 +23,18 @@ const safetyNoticeVisible = shallowRef(false)
 const active = shallowRef(0)
 
 watch(
-  () => userStore.user.token,
-  (token) => {
-    safetyNoticeVisible.value = Boolean(token)
+  () => userStore.user,
+  (session) => {
+    // 监听整个会话对象，确保即使重复登录拿到相同 token 也会重新弹出。
+    safetyNoticeVisible.value = Boolean(session.token)
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 )
+
+// Pinia 持久化数据可能在根组件初始化后才完成恢复，再补一次初始化检查。
+onMounted(() => {
+  safetyNoticeVisible.value = Boolean(userStore.getToken())
+})
 </script>
 
 <style>

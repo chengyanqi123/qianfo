@@ -8,6 +8,7 @@ import './styles/main.css';
 // 函数式调用的 Vant API（showConfirmDialog / showToast 等）需手动引入样式
 import 'vant/es/dialog/style';
 import 'vant/es/toast/style';
+import 'vant/es/popup/style';
 import { Notify } from 'vant';
 import { initMonitor, setMonitorContext, setMonitorTag, setMonitorUser } from '@qianfo/shared';
 import { useUserStore } from '@/stores/user';
