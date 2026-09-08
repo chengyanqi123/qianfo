@@ -147,7 +147,8 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       proxy: {
         '/api': {
-          target: 'http://192.168.5.102:9000',
+          // target: 'http://192.168.5.102:9000',
+          target: 'https://api.chengyanqi.com/qianfo',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },

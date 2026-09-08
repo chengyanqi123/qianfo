@@ -61,6 +61,22 @@ export interface LoginResult {
   user: User
 }
 
+// ========== 森林防火安全须知签名 ==========
+
+export interface SafetyNotice {
+  id: number
+  openId: string
+  content: string
+  signature: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SafetyNoticeDTO {
+  content: string
+  signature: string
+}
+
 // ========== 通用分页 ==========
 
 export interface PageQuery {

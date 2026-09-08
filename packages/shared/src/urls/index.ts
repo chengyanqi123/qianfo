@@ -2,6 +2,9 @@
 export const AUTH_LOGIN = '/auth/login';
 export const AUTH_H5_LOGIN = '/auth/h5/login';
 
+// Safety notice
+export const SAFETY_NOTICE = '/safety-notice';
+
 // Appointments
 export const APPOINTMENTS = '/appointments';
 export const APPOINTMENTS_HISTORY = '/appointments/history';

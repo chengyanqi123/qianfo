@@ -32,6 +32,11 @@ const router = createRouter({
           meta: { title: '用户管理', icon: 'User' },
         },
         {
+          path: 'safety-notices',
+          component: () => import('@/views/SafetyNoticeView.vue'),
+          meta: { title: '安全签名', icon: 'EditPen' },
+        },
+        {
           path: 'settings',
           component: () => import('@/views/SettingView.vue'),
           meta: { title: '系统设置', icon: 'Setting' },
