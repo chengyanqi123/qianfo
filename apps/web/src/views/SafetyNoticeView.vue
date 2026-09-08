@@ -7,7 +7,19 @@
         <el-table v-loading="loading" :data="tableData" border stripe>
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="openId" label="微信 OpenID" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="signature" label="游客签字" width="140" />
+          <el-table-column label="游客签字" width="140">
+            <template #default="{ row }">
+              <button
+                v-if="isImageSignature(row.signature)"
+                type="button"
+                class="signature-thumb"
+                @click="showSignature(row.signature)"
+              >
+                <img :src="row.signature" alt="游客手写签名" />
+              </button>
+              <span v-else>{{ row.signature || '-' }}</span>
+            </template>
+          </el-table-column>
           <el-table-column label="签署内容" min-width="220" show-overflow-tooltip>
             <template #default="{ row }">
               <el-button link type="primary" @click="showContent(row.content)">查看须知</el-button>
@@ -38,6 +50,12 @@
     <el-dialog v-model="contentVisible" title="安全须知及承诺书" width="min(680px, 92vw)">
       <div class="content-preview">{{ content }}</div>
     </el-dialog>
+
+    <el-dialog v-model="signatureVisible" title="游客手写签名" width="min(520px, 92vw)">
+      <div v-if="signatureImage" class="signature-preview-wrap">
+        <img :src="signatureImage" alt="游客手写签名" class="signature-preview" />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -53,6 +71,17 @@ const pageSize = ref(10)
 const total = ref(0)
 const contentVisible = ref(false)
 const content = ref('')
+const signatureVisible = ref(false)
+const signatureImage = ref('')
+
+function isImageSignature(value: string) {
+  return typeof value === 'string' && value.startsWith('data:image/')
+}
+
+function showSignature(value: string) {
+  signatureImage.value = value
+  signatureVisible.value = true
+}
 
 function formatTime(value: string) {
   return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-') : '-'
@@ -103,6 +132,40 @@ onMounted(fetchData)
   white-space: pre-wrap;
   color: var(--el-text-color-primary);
   line-height: 1.8;
+}
+
+.signature-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 110px;
+  height: 48px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  background: var(--el-fill-color-blank);
+  cursor: pointer;
+}
+
+.signature-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.signature-preview-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #fff;
+}
+
+.signature-preview {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
 }
 
 @media (max-width: 768px) {

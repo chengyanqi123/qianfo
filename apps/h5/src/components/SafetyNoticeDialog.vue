@@ -3,24 +3,24 @@ import { computed, shallowRef } from 'vue'
 import { showFailToast } from 'vant'
 import { submitSafetyNotice } from '@/api/safetyNotice'
 import { SAFETY_NOTICE_CONTENT } from '@/constants/safetyNotice'
+import SignaturePad from '@/components/SignaturePad.vue'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const signature = shallowRef('')
 const submitting = shallowRef(false)
-const canSubmit = computed(() => signature.value.trim().length > 0 && !submitting.value)
+const canSubmit = computed(() => Boolean(signature.value) && !submitting.value)
 const noticeLines = SAFETY_NOTICE_CONTENT.split('\n')
 const noticeTitle = noticeLines[0]
 
 async function onSubmit() {
-  const signedName = signature.value.trim()
-  if (!signedName) {
-    showFailToast('请填写游客签字')
+  if (!signature.value) {
+    showFailToast('请完成手写签字')
     return
   }
 
   submitting.value = true
   try {
-    await submitSafetyNotice({ content: SAFETY_NOTICE_CONTENT, signature: signedName })
+    await submitSafetyNotice({ content: SAFETY_NOTICE_CONTENT, signature: signature.value })
     visible.value = false
     signature.value = ''
   } finally {
@@ -43,7 +43,10 @@ async function onSubmit() {
         </p>
       </div>
       <div class="safety-footer">
-        <van-field v-model="signature" label="游客签字" placeholder="请输入真实姓名" maxlength="30" clearable />
+        <div class="signature-section">
+          <div class="signature-label">游客签字</div>
+          <SignaturePad v-model="signature" />
+        </div>
         <van-button block round type="primary" :loading="submitting" :disabled="!canSubmit" @click="onSubmit">
           同意并提交签名
         </van-button>
@@ -105,7 +108,13 @@ async function onSubmit() {
   background: #fff;
 }
 
-.safety-footer :deep(.van-field) {
+.signature-section {
   padding: 8px 0 14px;
+}
+
+.signature-label {
+  margin-bottom: 8px;
+  color: #323233;
+  font-size: 14px;
 }
 </style>

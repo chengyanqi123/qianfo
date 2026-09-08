@@ -10,6 +10,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SafetyNoticeDialog: typeof import('./components/SafetyNoticeDialog.vue')['default']
+    SignaturePad: typeof import('./components/SignaturePad.vue')['default']
     VanButton: typeof import('vant/es')['Button']
     VanCalendar: typeof import('vant/es')['Calendar']
     VanDivider: typeof import('vant/es')['Divider']
