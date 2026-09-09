@@ -47,7 +47,7 @@ async function onSubmit() {
     <div class="safety-dialog">
       <div class="safety-header">
         <h2>森林防火安全须知</h2>
-        <p>请认真阅读并完成签名后继续使用预约服务</p>
+        <p>请认真阅读并完成签字后继续使用预约服务</p>
       </div>
       <div class="safety-content">
         <h3>{{ noticeTitle }}</h3>
@@ -60,16 +60,16 @@ async function onSubmit() {
           <div class="signature-label-row">
             <div class="signature-label">游客签字</div>
             <button type="button" class="signature-action" @click="openSignature">
-              {{ signatureResult ? '点击修改' : '点击签名' }}
+              {{ signatureResult ? '点击修改' : '点击签字' }}
             </button>
           </div>
           <button v-if="signatureResult" type="button" class="signature-preview-button" @click="openSignature">
-            <img :src="signatureResult.dataUrl" alt="游客手写签名" />
-            <span>点击修改签名</span>
+            <img :src="signatureResult.dataUrl" alt="游客手写签字" />
+            <span>点击修改签字</span>
           </button>
         </div>
         <van-button block round type="primary" :loading="submitting" :disabled="!canSubmit" @click="onSubmit">
-          同意并提交签名
+          同意并提交签字
         </van-button>
       </div>
     </div>
