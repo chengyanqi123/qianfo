@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getStroke, type StrokeOptions } from 'perfect-freehand'
 import { showFailToast } from 'vant'
-import { nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from 'vue'
+import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from 'vue'
 import type { SignatureResult } from '@/types/signature'
 
 const props = defineProps<{
@@ -9,7 +9,6 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('visible', { default: false })
-const pad = useTemplateRef<HTMLDivElement>('pad')
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const hasSignature = shallowRef(false)
 
@@ -22,7 +21,7 @@ let drawing = false
 let canvasWidth = 0
 let canvasHeight = 0
 let activeStroke: InputPoint[] | null = null
-let backgroundImage: HTMLImageElement | null = null
+let backgroundImage: CanvasImageSource | null = null
 const strokes: InputPoint[][] = []
 
 const strokeOptions: StrokeOptions = {
@@ -142,6 +141,17 @@ function clearCanvas() {
   redraw()
 }
 
+function undoCanvas() {
+  finishStroke()
+  if (strokes.length > 0) {
+    strokes.pop()
+  } else if (backgroundImage) {
+    backgroundImage = null
+  }
+  hasSignature.value = strokes.length > 0 || Boolean(backgroundImage)
+  redraw()
+}
+
 function loadInitialSignature() {
   strokes.length = 0
   activeStroke = null
@@ -156,7 +166,15 @@ function loadInitialSignature() {
   const image = new Image()
   image.onload = () => {
     if (!visible.value) return
-    backgroundImage = image
+    const rotatedCanvas = document.createElement('canvas')
+    rotatedCanvas.width = Math.max(1, image.height)
+    rotatedCanvas.height = Math.max(1, image.width)
+    const rotatedContext = rotatedCanvas.getContext('2d')
+    if (!rotatedContext) return
+    rotatedContext.translate(rotatedCanvas.width, 0)
+    rotatedContext.rotate(Math.PI / 2)
+    rotatedContext.drawImage(image, 0, 0)
+    backgroundImage = rotatedCanvas
     redraw()
   }
   image.src = props.initialDataUrl
@@ -181,20 +199,30 @@ function handleResize() {
 }
 
 function exportSignatureDataUrl(element: HTMLCanvasElement) {
-  if (element.width <= MAX_SIGNATURE_WIDTH) {
-    return element.toDataURL('image/png')
+  const rotatedCanvas = document.createElement('canvas')
+  rotatedCanvas.width = Math.max(1, element.height)
+  rotatedCanvas.height = Math.max(1, element.width)
+
+  const rotatedContext = rotatedCanvas.getContext('2d')
+  if (!rotatedContext) return null
+  rotatedContext.translate(0, rotatedCanvas.height)
+  rotatedContext.rotate(-Math.PI / 2)
+  rotatedContext.drawImage(element, 0, 0)
+
+  if (rotatedCanvas.width <= MAX_SIGNATURE_WIDTH) {
+    return rotatedCanvas.toDataURL('image/png')
   }
 
-  const scale = MAX_SIGNATURE_WIDTH / element.width
+  const scale = MAX_SIGNATURE_WIDTH / rotatedCanvas.width
   const outputCanvas = document.createElement('canvas')
   outputCanvas.width = MAX_SIGNATURE_WIDTH
-  outputCanvas.height = Math.max(1, Math.round(element.height * scale))
+  outputCanvas.height = Math.max(1, Math.round(rotatedCanvas.height * scale))
 
   const outputContext = outputCanvas.getContext('2d')
   if (!outputContext) return null
   outputContext.imageSmoothingEnabled = true
   outputContext.imageSmoothingQuality = 'high'
-  outputContext.drawImage(element, 0, 0, outputCanvas.width, outputCanvas.height)
+  outputContext.drawImage(rotatedCanvas, 0, 0, outputCanvas.width, outputCanvas.height)
   return outputCanvas.toDataURL('image/png')
 }
 
@@ -218,56 +246,12 @@ function cancelSignature() {
   clearCanvas()
 }
 
-async function enterFullscreen() {
-  const element = pad.value
-  if (element?.requestFullscreen && !document.fullscreenElement) {
-    try {
-      await element.requestFullscreen()
-    } catch {
-      // 微信内置浏览器可能不支持原生全屏，继续使用当前全屏覆盖层。
-    }
-  }
-
-  try {
-    const orientation = screen.orientation as unknown as {
-      lock?: (value: 'landscape') => Promise<void>
-    }
-    await orientation.lock?.('landscape')
-  } catch {
-    // 横屏锁定不是所有浏览器都支持，CSS 会提供竖屏降级布局。
-  }
-
-  await nextTick()
-  handleResize()
-}
-
-async function exitFullscreen() {
-  if (document.fullscreenElement === pad.value) {
-    try {
-      await document.exitFullscreen()
-    } catch {
-      // 原生全屏退出失败时，覆盖层仍会随 visible 关闭。
-    }
-  }
-  const orientation = screen.orientation as unknown as { unlock?: () => void }
-  orientation.unlock?.()
-}
-
-function onFullscreenChange() {
-  if (document.fullscreenElement !== pad.value && visible.value && document.fullscreenEnabled) {
-    visible.value = false
-  }
-}
-
 watch(
   visible,
-  async (value) => {
+  (value) => {
     if (value) {
       setupCanvas()
       loadInitialSignature()
-      await enterFullscreen()
-    } else {
-      await exitFullscreen()
     }
   },
   { flush: 'post' },
@@ -276,30 +260,18 @@ watch(
 onMounted(() => {
   window.addEventListener('resize', handleResize)
   window.addEventListener('orientationchange', handleResize)
-  document.addEventListener('fullscreenchange', onFullscreenChange)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   window.removeEventListener('orientationchange', handleResize)
-  document.removeEventListener('fullscreenchange', onFullscreenChange)
 })
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="visible" class="signature-overlay">
-      <div ref="pad" class="signature-workspace">
-        <header class="signature-topbar">
-          <div class="signature-heading">
-            <span class="signature-kicker">森林防火安全须知</span>
-            <strong>请在空白区域完成手写签名</strong>
-          </div>
-          <van-button class="cancel-button" size="small" plain type="default" @click="cancelSignature">
-            取消
-          </van-button>
-        </header>
-
+      <div class="signature-workspace">
         <main class="signature-stage">
           <div class="signature-canvas-shell">
             <canvas
@@ -312,21 +284,49 @@ onBeforeUnmount(() => {
               @pointercancel="finishStroke"
               @lostpointercapture="finishStroke"
             />
-            <span v-if="!hasSignature" class="signature-placeholder">在此处签名</span>
+            <div v-if="!hasSignature" class="signature-placeholder">在此处签名</div>
           </div>
 
+          <aside class="back">
+            <van-button
+              class="tool-button"
+              icon="arrow-left"
+              type="default"
+              aria-label="返回"
+              title="返回"
+              @click="cancelSignature"
+            />
+          </aside>
+
           <aside class="signature-tools">
-            <span class="tools-caption">签名操作</span>
-            <van-button class="tool-button" size="small" plain type="default" @click="clearCanvas">清除</van-button>
             <van-button
               class="tool-button confirm-button"
-              size="small"
+              icon="success"
               type="primary"
               :disabled="!hasSignature"
+              aria-label="确认签名"
+              title="确认签名"
               @click="confirmSignature"
-            >
-              确认签名
-            </van-button>
+            />
+            <van-button
+              class="tool-button"
+              icon="cross"
+              plain
+              type="default"
+              aria-label="清除签名"
+              title="清除签名"
+              @click="clearCanvas"
+            />
+            <van-button
+              class="tool-button"
+              icon="revoke"
+              plain
+              type="default"
+              :disabled="!hasSignature"
+              aria-label="回退"
+              title="回退"
+              @click="undoCanvas"
+            />
           </aside>
         </main>
       </div>
@@ -346,8 +346,7 @@ onBeforeUnmount(() => {
 }
 
 .signature-workspace {
-  display: flex;
-  flex-direction: column;
+  position: relative;
   width: 100%;
   height: 100%;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -355,63 +354,21 @@ onBeforeUnmount(() => {
   background: #f5f7fa;
 }
 
-.signature-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex: 0 0 auto;
-  min-height: 64px;
-  padding: 10px 20px;
-  box-sizing: border-box;
-  border-bottom: 1px solid #e4e7ed;
-  background: #fff;
-}
-
-.signature-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-  color: #1f2329;
-}
-
-.signature-kicker {
-  color: #969799;
-  font-size: 12px;
-}
-
-.signature-heading strong {
-  overflow: hidden;
-  font-size: 16px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cancel-button {
-  flex: 0 0 auto;
-  margin-left: 16px;
-}
-
 .signature-stage {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 132px;
-  gap: 16px;
-  flex: 1 1 auto;
-  min-height: 0;
-  padding: 16px 20px 20px;
+  position: absolute;
+  inset: 0;
+  display: block;
   box-sizing: border-box;
 }
 
 .signature-canvas-shell {
   position: relative;
-  min-width: 0;
-  min-height: 0;
   overflow: hidden;
-  border: 1px solid #dcdfe6;
-  border-radius: 10px;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
   background: #fff;
-  box-shadow: 0 2px 10px rgb(31 35 41 / 6%);
 }
 
 .signature-canvas {
@@ -422,75 +379,57 @@ onBeforeUnmount(() => {
 }
 
 .signature-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: absolute;
-  top: 50%;
-  left: 50%;
+  inset: 0;
   color: #c8c9cc;
   font-size: 18px;
   pointer-events: none;
-  transform: translate(-50%, -50%);
   user-select: none;
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
+  transform: rotate(90deg);
+  transform-origin: 50% 50%;
+}
+
+.back {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
 }
 
 .signature-tools {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 1;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
   gap: 12px;
-  min-width: 0;
-  padding: 16px 12px;
-  border: 1px solid #e4e7ed;
-  border-radius: 10px;
-  background: #fff;
-}
-
-.tools-caption {
-  margin-bottom: 4px;
-  color: #646566;
-  font-size: 12px;
-  text-align: center;
+  transform: translateX(-50%);
 }
 
 .tool-button {
-  width: 100%;
-  margin: 0;
+  transform: rotate(90deg);
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  opacity: 0.9;
+  /* background: rgba(255, 255, 255, .7);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px); */
 }
 
-@media (orientation: portrait) {
-  .signature-topbar {
-    min-height: 58px;
-    padding: 8px 14px;
-  }
-
-  .signature-heading strong {
-    font-size: 15px;
-  }
-
-  .signature-stage {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: 10px;
-    padding: 10px 12px 12px;
-  }
-
-  .signature-tools {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    min-height: 58px;
-    padding: 8px 10px;
-  }
-
-  .tools-caption {
-    margin: 0 auto 0 0;
-    text-align: left;
-  }
-
-  .tool-button {
-    width: auto;
-    min-width: 74px;
-  }
+.tool-button :deep(.van-icon) {
+  font-size: 20px;
 }
 </style>
