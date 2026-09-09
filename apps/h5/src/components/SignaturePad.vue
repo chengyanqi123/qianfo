@@ -2,6 +2,8 @@
 import { nextTick, onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
 
 const model = defineModel<string>({ default: '' })
+const fullscreen = defineModel<boolean>('fullscreen', { default: false })
+const pad = useTemplateRef<HTMLDivElement>('pad')
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 let context: CanvasRenderingContext2D | null = null
 let drawing = false
@@ -85,6 +87,49 @@ function handleResize() {
   }
 }
 
+async function enterFullscreen() {
+  const element = pad.value
+  if (element?.requestFullscreen && !document.fullscreenElement) {
+    try {
+      await element.requestFullscreen()
+    } catch {
+      // 微信内置浏览器可能不支持原生全屏，使用 CSS 全屏布局兜底。
+    }
+  }
+
+  try {
+    const orientation = screen.orientation as unknown as {
+      lock?: (value: 'landscape') => Promise<void>
+    }
+    await orientation.lock?.('landscape')
+  } catch {
+    // 横屏锁定不是所有浏览器都支持。
+  }
+
+  await nextTick()
+  handleResize()
+}
+
+async function exitFullscreen() {
+  if (document.fullscreenElement === pad.value) {
+    try {
+      await document.exitFullscreen()
+    } catch {
+      // 原生全屏退出失败时，CSS 状态仍可恢复页面布局。
+    }
+  }
+  const orientation = screen.orientation as unknown as { unlock?: () => void }
+  orientation.unlock?.()
+  await nextTick()
+  handleResize()
+}
+
+function onFullscreenChange() {
+  if (fullscreen.value && document.fullscreenElement !== pad.value) {
+    fullscreen.value = false
+  }
+}
+
 watch(model, (value) => {
   if (!value && canvas.value && context) {
     const ratio = window.devicePixelRatio || 1
@@ -92,19 +137,33 @@ watch(model, (value) => {
   }
 })
 
+watch(fullscreen, (value) => {
+  if (value) {
+    void enterFullscreen()
+  } else {
+    void exitFullscreen()
+  }
+})
+
 onMounted(async () => {
   await nextTick()
   setupCanvas()
   window.addEventListener('resize', handleResize)
+  document.addEventListener('fullscreenchange', onFullscreenChange)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
 })
 </script>
 
 <template>
-  <div class="signature-pad">
+  <div ref="pad" class="signature-pad" :class="{ 'is-fullscreen': fullscreen }">
+    <div v-if="fullscreen" class="fullscreen-header">
+      <span>横屏手写签名</span>
+      <van-button size="small" plain type="default" @click="fullscreen = false">退出全屏</van-button>
+    </div>
     <canvas
       ref="canvas"
       class="signature-canvas"
@@ -129,12 +188,40 @@ onBeforeUnmount(() => {
   background: #fff;
 }
 
+.signature-pad.is-fullscreen {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+}
+
+.fullscreen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 16px;
+  color: #323233;
+  font-size: 14px;
+  background: #fff;
+}
+
 .signature-canvas {
   display: block;
   width: 100%;
   height: 170px;
   background: #fff;
   touch-action: none;
+}
+
+.signature-pad.is-fullscreen .signature-canvas {
+  flex: 1;
+  height: auto;
 }
 
 .signature-toolbar {

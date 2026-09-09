@@ -7,6 +7,7 @@ import SignaturePad from '@/components/SignaturePad.vue'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const signature = shallowRef('')
+const signatureFullscreen = shallowRef(false)
 const submitting = shallowRef(false)
 const canSubmit = computed(() => Boolean(signature.value) && !submitting.value)
 const noticeLines = SAFETY_NOTICE_CONTENT.split('\n')
@@ -21,6 +22,7 @@ async function onSubmit() {
   submitting.value = true
   try {
     await submitSafetyNotice({ content: SAFETY_NOTICE_CONTENT, signature: signature.value })
+    signatureFullscreen.value = false
     visible.value = false
     signature.value = ''
   } finally {
@@ -44,8 +46,20 @@ async function onSubmit() {
       </div>
       <div class="safety-footer">
         <div class="signature-section">
-          <div class="signature-label">游客签字</div>
-          <SignaturePad v-model="signature" />
+          <div class="signature-label-row">
+            <div class="signature-label">游客签字</div>
+            <van-button
+              class="fullscreen-button"
+              size="small"
+              plain
+              type="default"
+              :icon="signatureFullscreen ? 'shrink' : 'expand-o'"
+              :aria-label="signatureFullscreen ? '退出全屏签字' : '全屏签字'"
+              :title="signatureFullscreen ? '退出全屏签字' : '全屏签字'"
+              @click="signatureFullscreen = !signatureFullscreen"
+            />
+          </div>
+          <SignaturePad v-model="signature" v-model:fullscreen="signatureFullscreen" />
         </div>
         <van-button block round type="primary" :loading="submitting" :disabled="!canSubmit" @click="onSubmit">
           同意并提交签名
@@ -113,8 +127,20 @@ async function onSubmit() {
 }
 
 .signature-label {
-  margin-bottom: 8px;
   color: #323233;
   font-size: 14px;
+}
+
+.signature-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.fullscreen-button {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 8px;
 }
 </style>
