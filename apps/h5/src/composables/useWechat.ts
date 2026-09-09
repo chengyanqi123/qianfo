@@ -20,7 +20,7 @@ function resolveWechatRedirectUri(fullPath: string): string {
 
 export function useWechat() {
   async function login(appId?: string, options: Options = {}): Promise<LoginResult | null> {
-    const { scope = 'snsapi_base', state = 'STATE' } = options
+    const { scope = 'snsapi_userinfo', state = 'STATE' } = options
     if (!appId) {
       appId = WX_APP_ID
     }
