@@ -15,7 +15,7 @@
                 class="signature-thumb"
                 @click="showSignature(row.signature)"
               >
-                <img :src="row.signature" alt="游客手写签名" />
+                <img :src="signatureSrc(row.signature)" alt="游客手写签名" />
               </button>
               <span v-else>{{ row.signature || '-' }}</span>
             </template>
@@ -75,11 +75,18 @@ const signatureVisible = ref(false)
 const signatureImage = ref('')
 
 function isImageSignature(value: string) {
-  return typeof value === 'string' && value.startsWith('data:image/')
+  return (
+    typeof value === 'string' &&
+    (value.startsWith('data:image/') || (value.length > 100 && /^[A-Za-z0-9+/]+={0,2}$/.test(value)))
+  )
+}
+
+function signatureSrc(value: string) {
+  return value.startsWith('data:image/') ? value : `data:image/png;base64,${value}`
 }
 
 function showSignature(value: string) {
-  signatureImage.value = value
+  signatureImage.value = signatureSrc(value)
   signatureVisible.value = true
 }
 

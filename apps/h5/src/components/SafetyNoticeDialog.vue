@@ -4,27 +4,38 @@ import { showFailToast } from 'vant'
 import { submitSafetyNotice } from '@/api/safetyNotice'
 import { SAFETY_NOTICE_CONTENT } from '@/constants/safetyNotice'
 import SignaturePad from '@/components/SignaturePad.vue'
+import type { SignatureResult } from '@/types/signature'
 
 const visible = defineModel<boolean>('visible', { required: true })
-const signature = shallowRef('')
-const signatureFullscreen = shallowRef(false)
+const signatureDialogVisible = shallowRef(false)
+const signatureResult = shallowRef<SignatureResult | null>(null)
 const submitting = shallowRef(false)
-const canSubmit = computed(() => Boolean(signature.value) && !submitting.value)
+const canSubmit = computed(() => Boolean(signatureResult.value?.base64) && !submitting.value)
 const noticeLines = SAFETY_NOTICE_CONTENT.split('\n')
 const noticeTitle = noticeLines[0]
 
+function openSignature() {
+  signatureDialogVisible.value = true
+}
+
+function onSignatureConfirmed(result: SignatureResult) {
+  signatureResult.value = result
+}
+
 async function onSubmit() {
-  if (!signature.value) {
+  if (!signatureResult.value?.base64) {
     showFailToast('请完成手写签字')
     return
   }
 
   submitting.value = true
   try {
-    await submitSafetyNotice({ content: SAFETY_NOTICE_CONTENT, signature: signature.value })
-    signatureFullscreen.value = false
+    const signature = signatureResult.value.signature.startsWith('data:image/png;base64,')
+      ? signatureResult.value.signature
+      : `data:image/png;base64,${signatureResult.value.base64}`
+    await submitSafetyNotice({ content: SAFETY_NOTICE_CONTENT, signature })
     visible.value = false
-    signature.value = ''
+    signatureResult.value = null
   } finally {
     submitting.value = false
   }
@@ -48,18 +59,14 @@ async function onSubmit() {
         <div class="signature-section">
           <div class="signature-label-row">
             <div class="signature-label">游客签字</div>
-            <van-button
-              class="fullscreen-button"
-              size="small"
-              plain
-              type="default"
-              :icon="signatureFullscreen ? 'shrink' : 'expand-o'"
-              :aria-label="signatureFullscreen ? '退出全屏签字' : '全屏签字'"
-              :title="signatureFullscreen ? '退出全屏签字' : '全屏签字'"
-              @click="signatureFullscreen = !signatureFullscreen"
-            />
+            <button type="button" class="signature-action" @click="openSignature">
+              {{ signatureResult ? '点击修改' : '点击签名' }}
+            </button>
           </div>
-          <SignaturePad v-model="signature" v-model:fullscreen="signatureFullscreen" />
+          <button v-if="signatureResult" type="button" class="signature-preview-button" @click="openSignature">
+            <img :src="signatureResult.dataUrl" alt="游客手写签名" />
+            <span>点击修改签名</span>
+          </button>
         </div>
         <van-button block round type="primary" :loading="submitting" :disabled="!canSubmit" @click="onSubmit">
           同意并提交签名
@@ -67,6 +74,11 @@ async function onSubmit() {
       </div>
     </div>
   </van-popup>
+  <SignaturePad
+    v-model:visible="signatureDialogVisible"
+    :initial-data-url="signatureResult?.dataUrl"
+    @confirm="onSignatureConfirmed"
+  />
 </template>
 
 <style scoped>
@@ -138,9 +150,43 @@ async function onSubmit() {
   margin-bottom: 8px;
 }
 
-.fullscreen-button {
-  min-width: 34px;
-  height: 30px;
-  padding: 0 8px;
+.signature-action {
+  padding: 0;
+  border: 0;
+  color: var(--van-primary-color);
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.signature-preview-button {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 110px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #dcdee0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.signature-preview-button img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.signature-preview-button span {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #fff;
+  background: rgb(0 0 0 / 55%);
+  font-size: 12px;
 }
 </style>
