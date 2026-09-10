@@ -2,27 +2,22 @@
 import { getStroke, type StrokeOptions } from 'perfect-freehand'
 import { showFailToast } from 'vant'
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from 'vue'
-import type { SignatureResult } from '@/types/signature'
+import type { SignaturePoint, SignatureResult } from '@/types/signature'
 
 const props = defineProps<{
-  initialDataUrl?: string
+  initialSignature?: SignatureResult | null
 }>()
 
 const visible = defineModel<boolean>('visible', { default: false })
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 const hasSignature = shallowRef(false)
 
-type InputPoint = [number, number, number]
-
-const MAX_SIGNATURE_WIDTH = 960
-
 let context: CanvasRenderingContext2D | null = null
 let drawing = false
 let canvasWidth = 0
 let canvasHeight = 0
-let activeStroke: InputPoint[] | null = null
-let backgroundImage: CanvasImageSource | null = null
-const strokes: InputPoint[][] = []
+let activeStroke: SignaturePoint[] | null = null
+const strokes: SignaturePoint[][] = []
 
 const strokeOptions: StrokeOptions = {
   size: 4,
@@ -72,10 +67,6 @@ function setupCanvas() {
 function redraw() {
   if (!context) return
   context.clearRect(0, 0, canvasWidth, canvasHeight)
-
-  if (backgroundImage) {
-    context.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight)
-  }
 
   for (const stroke of strokes) {
     const outline = getStroke(stroke, strokeOptions)
@@ -135,7 +126,6 @@ function finishStroke(event?: PointerEvent) {
 function clearCanvas() {
   strokes.length = 0
   activeStroke = null
-  backgroundImage = null
   drawing = false
   hasSignature.value = false
   redraw()
@@ -145,10 +135,8 @@ function undoCanvas() {
   finishStroke()
   if (strokes.length > 0) {
     strokes.pop()
-  } else if (backgroundImage) {
-    backgroundImage = null
   }
-  hasSignature.value = strokes.length > 0 || Boolean(backgroundImage)
+  hasSignature.value = strokes.length > 0
   redraw()
 }
 
@@ -156,28 +144,20 @@ function loadInitialSignature() {
   strokes.length = 0
   activeStroke = null
   drawing = false
-  backgroundImage = null
-  hasSignature.value = Boolean(props.initialDataUrl)
-  if (!props.initialDataUrl) {
+  const initialSignature = props.initialSignature
+  if (!initialSignature || initialSignature.strokes.length === 0) {
+    hasSignature.value = false
     redraw()
     return
   }
 
-  const image = new Image()
-  image.onload = () => {
-    if (!visible.value) return
-    const rotatedCanvas = document.createElement('canvas')
-    rotatedCanvas.width = Math.max(1, image.height)
-    rotatedCanvas.height = Math.max(1, image.width)
-    const rotatedContext = rotatedCanvas.getContext('2d')
-    if (!rotatedContext) return
-    rotatedContext.translate(rotatedCanvas.width, 0)
-    rotatedContext.rotate(Math.PI / 2)
-    rotatedContext.drawImage(image, 0, 0)
-    backgroundImage = rotatedCanvas
-    redraw()
+  const scaleX = canvasWidth / initialSignature.sourceWidth
+  const scaleY = canvasHeight / initialSignature.sourceHeight
+  for (const stroke of initialSignature.strokes) {
+    strokes.push(stroke.map(([x, y, pressure]) => [x * scaleX, y * scaleY, pressure]))
   }
-  image.src = props.initialDataUrl
+  hasSignature.value = true
+  redraw()
 }
 
 function handleResize() {
@@ -198,44 +178,56 @@ function handleResize() {
   redraw()
 }
 
-function exportSignatureDataUrl(element: HTMLCanvasElement) {
-  const rotatedCanvas = document.createElement('canvas')
-  rotatedCanvas.width = Math.max(1, element.height)
-  rotatedCanvas.height = Math.max(1, element.width)
+function formatCoordinate(value: number) {
+  return Number(value.toFixed(2))
+}
 
-  const rotatedContext = rotatedCanvas.getContext('2d')
-  if (!rotatedContext) return null
-  rotatedContext.translate(0, rotatedCanvas.height)
-  rotatedContext.rotate(-Math.PI / 2)
-  rotatedContext.drawImage(element, 0, 0)
+function getSvgPath(stroke: SignaturePoint[]) {
+  const outline = getStroke(stroke, strokeOptions)
+  if (outline.length === 0) return ''
 
-  if (rotatedCanvas.width <= MAX_SIGNATURE_WIDTH) {
-    return rotatedCanvas.toDataURL('image/png')
+  const [firstPoint, ...remainingPoints] = outline
+  const commands = [`M${formatCoordinate(firstPoint[1])} ${formatCoordinate(canvasWidth - firstPoint[0])}`]
+  for (const [x, y] of remainingPoints) {
+    commands.push(`L${formatCoordinate(y)} ${formatCoordinate(canvasWidth - x)}`)
   }
+  commands.push('Z')
+  return commands.join('')
+}
 
-  const scale = MAX_SIGNATURE_WIDTH / rotatedCanvas.width
-  const outputCanvas = document.createElement('canvas')
-  outputCanvas.width = MAX_SIGNATURE_WIDTH
-  outputCanvas.height = Math.max(1, Math.round(rotatedCanvas.height * scale))
+function exportSignatureSvg() {
+  const paths = strokes
+    .map(getSvgPath)
+    .filter(Boolean)
+    .map((path) => `<path d="${path}"/>`)
+    .join('')
 
-  const outputContext = outputCanvas.getContext('2d')
-  if (!outputContext) return null
-  outputContext.imageSmoothingEnabled = true
-  outputContext.imageSmoothingQuality = 'high'
-  outputContext.drawImage(rotatedCanvas, 0, 0, outputCanvas.width, outputCanvas.height)
-  return outputCanvas.toDataURL('image/png')
+  if (!paths) return null
+
+  const width = formatCoordinate(canvasHeight)
+  const height = formatCoordinate(canvasWidth)
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" fill="#1f2329">${paths}</svg>`
+}
+
+function createSvgPreviewUrl(svg: string) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
 function confirmSignature() {
   if (!canvas.value || !hasSignature.value) return
   finishStroke()
-  const dataUrl = exportSignatureDataUrl(canvas.value)
-  if (!dataUrl) {
-    showFailToast('签名图片生成失败，请重试')
+  const svg = exportSignatureSvg()
+  if (!svg) {
+    showFailToast('签名生成失败，请重试')
     return
   }
-  const [, base64 = ''] = dataUrl.split(',', 2)
-  const result = { signature: dataUrl, dataUrl, base64 }
+  const result: SignatureResult = {
+    svg,
+    previewUrl: createSvgPreviewUrl(svg),
+    strokes: strokes.map((stroke) => stroke.map((point) => [...point])),
+    sourceWidth: canvasWidth,
+    sourceHeight: canvasHeight,
+  }
   emit('confirm', result)
   visible.value = false
   clearCanvas()

@@ -69,12 +69,7 @@
 
       <template #footer>
         <div>
-          <el-button
-            type="primary"
-            :icon="Download"
-            :loading="exportLoading"
-            @click="exportSignatureFile"
-          >
+          <el-button type="primary" :icon="Download" :loading="exportLoading" @click="exportSignatureFile">
             导出
           </el-button>
         </div>
@@ -111,7 +106,11 @@ const detail = ref<SafetyNotice>({
 })
 
 function signatureSrc(value: string) {
-  return value.startsWith('data:image/') ? value : `data:image/png;base64,${value}`
+  const signature = value.trim()
+  if (signature.startsWith('<svg')) {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(signature)}`
+  }
+  return signature.startsWith('data:image/') ? signature : `data:image/png;base64,${signature}`
 }
 
 function getUserNick(row: SafetyNotice) {

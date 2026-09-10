@@ -10,7 +10,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 const signatureDialogVisible = shallowRef(false)
 const signatureResult = shallowRef<SignatureResult | null>(null)
 const submitting = shallowRef(false)
-const canSubmit = computed(() => Boolean(signatureResult.value?.base64) && !submitting.value)
+const canSubmit = computed(() => Boolean(signatureResult.value?.svg) && !submitting.value)
 const noticeLines = SAFETY_NOTICE_CONTENT.split('\n')
 const noticeTitle = noticeLines[0]
 
@@ -23,17 +23,14 @@ function onSignatureConfirmed(result: SignatureResult) {
 }
 
 async function onSubmit() {
-  if (!signatureResult.value?.base64) {
+  if (!signatureResult.value?.svg) {
     showFailToast('请完成手写签字')
     return
   }
 
   submitting.value = true
   try {
-    const signature = signatureResult.value.signature.startsWith('data:image/png;base64,')
-      ? signatureResult.value.signature
-      : `data:image/png;base64,${signatureResult.value.base64}`
-    await submitSafetyNotice({ content: SAFETY_NOTICE_CONTENT, signature })
+    await submitSafetyNotice({ content: SAFETY_NOTICE_CONTENT, signature: signatureResult.value.svg })
     visible.value = false
     signatureResult.value = null
   } finally {
@@ -64,7 +61,7 @@ async function onSubmit() {
             </button>
           </div>
           <button v-if="signatureResult" type="button" class="signature-preview-button" @click="openSignature">
-            <img :src="signatureResult.dataUrl" alt="游客手写签字" />
+            <img :src="signatureResult.previewUrl" alt="游客手写签字" />
             <span>点击修改签字</span>
           </button>
         </div>
@@ -76,7 +73,7 @@ async function onSubmit() {
   </van-popup>
   <SignaturePad
     v-model:visible="signatureDialogVisible"
-    :initial-data-url="signatureResult?.dataUrl"
+    :initial-signature="signatureResult"
     @confirm="onSignatureConfirmed"
   />
 </template>

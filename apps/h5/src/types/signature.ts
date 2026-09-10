@@ -1,5 +1,9 @@
+export type SignaturePoint = [number, number, number]
+
 export interface SignatureResult {
-  signature: string
-  dataUrl: string
-  base64: string
+  svg: string
+  previewUrl: string
+  strokes: SignaturePoint[][]
+  sourceWidth: number
+  sourceHeight: number
 }
