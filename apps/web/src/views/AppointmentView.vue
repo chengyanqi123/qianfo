@@ -98,12 +98,12 @@
           <el-table-column prop="name" label="姓名" width="120" align="center" />
           <el-table-column prop="needGuide" label="需导赏员" width="100" align="center">
             <template #default="{ row }">
-              <el-checkbox :value="row.needGuide" disabled size="large" />
+              <el-checkbox :model-value="row.needGuide" disabled size="large" />
             </template>
           </el-table-column>
           <el-table-column prop="useVehicle" label="需用车" width="80" align="center">
             <template #default="{ row }">
-              <el-checkbox :value="row.useVehicle" disabled size="large" />
+              <el-checkbox :model-value="row.useVehicle" disabled size="large" />
             </template>
           </el-table-column>
           <el-table-column label="状态" width="100">
