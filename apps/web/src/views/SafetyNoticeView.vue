@@ -6,30 +6,21 @@
       <div class="table-wrap">
         <el-table v-loading="loading" :data="tableData" border stripe>
           <el-table-column prop="id" label="ID" width="80" />
-          <el-table-column prop="openId" label="微信 OpenID" min-width="180" show-overflow-tooltip />
-          <el-table-column label="游客签字" width="140">
+          <el-table-column label="用户" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
-              <button
-                v-if="isImageSignature(row.signature)"
-                type="button"
-                class="signature-thumb"
-                @click="showSignature(row.signature)"
-              >
-                <img :src="signatureSrc(row.signature)" alt="游客手写签名" />
-              </button>
-              <span v-else>{{ row.signature || '-' }}</span>
+              <span>{{ getUserNick(row) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="签署内容" min-width="220" show-overflow-tooltip>
+          <el-table-column prop="createdAt" label="签署时间" width="240">
+            <template #default="{ row }">{{ formatTime(row.createdAt, true) }}</template>
+          </el-table-column>
+          <el-table-column prop="updatedAt" label="更新时间" width="240">
+            <template #default="{ row }">{{ formatTime(row.updatedAt, true) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="180" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click="showContent(row.content)">查看须知</el-button>
+              <el-button link type="primary" @click="showContent(row)">预览导出</el-button>
             </template>
-          </el-table-column>
-          <el-table-column prop="createdAt" label="签署时间" width="180">
-            <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
-          </el-table-column>
-          <el-table-column prop="updatedAt" label="更新时间" width="180">
-            <template #default="{ row }">{{ formatTime(row.updatedAt) }}</template>
           </el-table-column>
         </el-table>
       </div>
@@ -47,14 +38,47 @@
       </div>
     </el-card>
 
-    <el-dialog v-model="contentVisible" title="安全须知及承诺书" width="min(680px, 92vw)">
-      <div class="content-preview">{{ content }}</div>
-    </el-dialog>
+    <el-dialog
+      v-model="contentVisible"
+      title="签署预览"
+      width="min(480px, 92vw)"
+      class="preview-format"
+      align-center
+      center
+      overflow
+      body-class="preview-body"
+    >
+      <el-watermark
+        :content="[getUserNick(detail), formatTime(detail.createdAt, true)]"
+        :gap="[20, 10]"
+        :offset="[0, 0]"
+        :height="32"
+        :z-index="9999"
+        :font="{
+          color: 'rgba(0, 0, 0, .15)',
+        }"
+      >
+        <div class="content-preview">{{ detail.content }}</div>
+        <div class="signature-footer">
+          <div class="signature">
+            <img :src="signatureSrc(detail.signature)" alt="游客手写签名" class="signature-img" />
+            <div class="signature-date">{{ formatTime(detail.createdAt, false) }}</div>
+          </div>
+        </div>
+      </el-watermark>
 
-    <el-dialog v-model="signatureVisible" title="游客手写签名" width="min(520px, 92vw)">
-      <div v-if="signatureImage" class="signature-preview-wrap">
-        <img :src="signatureImage" alt="游客手写签名" class="signature-preview" />
-      </div>
+      <template #footer>
+        <div>
+          <el-button
+            type="primary"
+            :icon="Download"
+            :loading="exportLoading"
+            @click="exportSignatureFile"
+          >
+            导出
+          </el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -63,6 +87,9 @@
 import { onMounted, ref } from 'vue'
 import type { SafetyNotice } from '@qianfo/shared'
 import { getSafetyNotices } from '@/api/safetyNotice'
+import dayjs from 'dayjs'
+import { Close, Download } from '@element-plus/icons-vue'
+import html2canvas from 'html2canvas'
 
 const loading = ref(false)
 const tableData = ref<SafetyNotice[]>([])
@@ -70,33 +97,72 @@ const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const contentVisible = ref(false)
-const content = ref('')
-const signatureVisible = ref(false)
-const signatureImage = ref('')
-
-function isImageSignature(value: string) {
-  return (
-    typeof value === 'string' &&
-    (value.startsWith('data:image/') || (value.length > 100 && /^[A-Za-z0-9+/]+={0,2}$/.test(value)))
-  )
-}
+const exportLoading = ref(false)
+const detail = ref<SafetyNotice>({
+  id: 0,
+  openId: '',
+  content: '',
+  signature: '',
+  createdAt: '',
+  updatedAt: '',
+  userName: '',
+  username: '',
+  nickName: '',
+})
 
 function signatureSrc(value: string) {
   return value.startsWith('data:image/') ? value : `data:image/png;base64,${value}`
 }
 
-function showSignature(value: string) {
-  signatureImage.value = signatureSrc(value)
-  signatureVisible.value = true
+function getUserNick(row: SafetyNotice) {
+  return row?.nickName || row?.username || row?.userName || row?.openId || '--'
 }
 
-function formatTime(value: string) {
-  return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-') : '-'
+function formatTime(value: string, isTime: boolean) {
+  return value ? dayjs(value).format(`YYYY年MM月DD日${isTime ? ' HH:mm:ss' : ''}`) : '-'
 }
 
-function showContent(value: string) {
-  content.value = value
+function showContent(value: SafetyNotice) {
+  detail.value = value
   contentVisible.value = true
+}
+
+async function exportSignatureFile() {
+  exportLoading.value = true
+  try {
+    const canvas = await html2canvas(document.querySelector('.preview-body') as HTMLElement)
+    const blob = await canvasToBlob(canvas)
+    const objectURL = URL.createObjectURL(blob as Blob)
+
+    const link = document.createElement('a')
+    link.href = objectURL
+    link.download = `${getUserNick(detail.value)}${detail.value?.id ?? ''}.jpg`
+    document.body.appendChild(link)
+
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(objectURL)
+  } catch {
+    // 导出失败时仅结束 Loading，避免阻塞用户继续操作。
+  } finally {
+    exportLoading.value = false
+  }
+}
+
+function canvasToBlob(canvas: any, type = 'image/jpeg', quality = 1) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob: any) => {
+        if (blob) {
+          resolve(blob)
+        } else {
+          reject(new Error('Canvas 转换 Blob 失败'))
+        }
+      },
+      type,
+      quality,
+    )
+  })
 }
 
 async function fetchData() {
@@ -134,10 +200,10 @@ onMounted(fetchData)
 }
 
 .content-preview {
-  max-height: 60vh;
-  overflow-y: auto;
   white-space: pre-wrap;
-  color: var(--el-text-color-primary);
+  padding: 24px;
+  box-sizing: border-box;
+  /* color: var(--el-text-color-primary); */
   line-height: 1.8;
 }
 
@@ -173,6 +239,33 @@ onMounted(fetchData)
   width: 100%;
   max-height: 300px;
   object-fit: contain;
+}
+
+.signature-footer {
+  display: flex;
+  justify-content: end;
+  padding: 0 24px;
+  box-sizing: border-box;
+  .signature {
+    width: 200px;
+    box-sizing: border-box;
+    padding: 48px 0;
+    .signature-img {
+      width: 100%;
+      height: auto;
+    }
+    .signature-date {
+      text-align: end;
+    }
+  }
+}
+
+:deep(.preview-body.el-dialog__body) {
+  /* max-height: min(90vh, 200px);
+  overflow-y: scroll; */
+  margin-top: 12px;
+  background-color: #fff !important;
+  color: #212121;
 }
 
 @media (max-width: 768px) {

@@ -43,6 +43,7 @@ declare module 'vue' {
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTag: typeof import('element-plus/es')['ElTag']
+    ElWatermark: typeof import('element-plus/es')['ElWatermark']
     'ISi:moonLine': typeof import('~icons/si/moon-line')['default']
     'ISi:sunLine': typeof import('~icons/si/sun-line')['default']
     'IStreamline:scanner': typeof import('~icons/streamline/scanner')['default']

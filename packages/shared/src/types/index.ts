@@ -66,6 +66,9 @@ export interface LoginResult {
 export interface SafetyNotice {
   id: number
   openId: string
+  username: string
+  userName: string
+  nickName: string
   content: string
   signature: string
   createdAt: string
