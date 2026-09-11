@@ -58,6 +58,7 @@
           color: 'rgba(0, 0, 0, .15)',
         }"
       >
+        <h3 class="signature-title">森林防火安全须知及承诺书</h3>
         <div class="content-preview">{{ detail.content }}</div>
         <div class="signature-footer">
           <div class="signature">
@@ -70,7 +71,7 @@
       <template #footer>
         <div>
           <el-button type="primary" :icon="Download" :loading="exportLoading" @click="exportSignatureFile">
-            导出
+            导出为图片
           </el-button>
         </div>
       </template>
@@ -231,6 +232,11 @@ onMounted(fetchData)
   justify-content: center;
   padding: 12px;
   background: #fff;
+}
+
+.signature-title {
+  padding-top: 24px;
+  text-align: center;
 }
 
 .signature-preview {

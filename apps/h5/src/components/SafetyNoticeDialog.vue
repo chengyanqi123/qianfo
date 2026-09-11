@@ -43,12 +43,12 @@ async function onSubmit() {
   <van-popup v-model:show="visible" position="bottom" round :close-on-click-overlay="false" :style="{ height: '88%' }">
     <div class="safety-dialog">
       <div class="safety-header">
-        <h2>森林防火安全须知</h2>
+        <h2>森林防火安全须知及承诺书</h2>
         <p>请认真阅读并完成签字后继续使用预约服务</p>
       </div>
       <div class="safety-content">
-        <h3>{{ noticeTitle }}</h3>
-        <p v-for="(paragraph, index) in noticeLines.slice(1)" :key="index" class="notice-line">
+        <!-- <h3>{{ noticeTitle }}</h3> -->
+        <p v-for="(paragraph, index) in noticeLines" :key="index" class="notice-line">
           {{ paragraph || ' ' }}
         </p>
       </div>
