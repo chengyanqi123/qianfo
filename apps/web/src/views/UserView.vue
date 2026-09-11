@@ -6,17 +6,17 @@
     <el-card shadow="never" class="filter-card">
       <el-form :model="filter" :label-position="isMobile ? 'top' : 'right'" label-width="70px">
         <el-row :gutter="12">
-          <el-col :xs="24" :sm="8" :md="6">
+          <el-col :xs="24" :sm="24" :md="6">
             <el-form-item label="用户名">
               <el-input v-model="filter.username" placeholder="搜索用户名" clearable style="width: 100%" />
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="8" :md="6">
+          <el-col :xs="24" :sm="24" :md="6">
             <el-form-item label="手机号">
               <el-input v-model="filter.phone" placeholder="搜索手机号" clearable style="width: 100%" />
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="8" :md="6">
+          <el-col :xs="24" :sm="24" :md="12">
             <el-form-item :label="isMobile ? '' : ' '">
               <div class="filter-actions">
                 <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
