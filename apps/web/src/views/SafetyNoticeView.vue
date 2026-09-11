@@ -40,7 +40,6 @@
 
     <el-dialog
       v-model="contentVisible"
-      title="签署预览"
       width="min(480px, 92vw)"
       class="preview-format"
       align-center
@@ -70,9 +69,11 @@
 
       <template #footer>
         <div>
-          <el-button type="primary" :icon="Download" :loading="exportLoading" @click="exportSignatureFile">
-            导出为图片
-          </el-button>
+          <el-button :icon="Printer" @click="printSignature">导出为PDF或直接打印</el-button>
+          <el-button :icon="Download" :loading="exportLoading" @click="exportSignatureFile"> 导出为图片 </el-button>
+        </div>
+        <div class="tips">
+          注意：使用导出或打印功能建议在PC端使用Chrome或Edge浏览器进行操作，其他平台和浏览器不保证功能的正常使用
         </div>
       </template>
     </el-dialog>
@@ -84,7 +85,7 @@ import { onMounted, ref } from 'vue'
 import type { SafetyNotice } from '@qianfo/shared'
 import { getSafetyNotices } from '@/api/safetyNotice'
 import dayjs from 'dayjs'
-import { Close, Download } from '@element-plus/icons-vue'
+import { Download, Printer } from '@element-plus/icons-vue'
 import html2canvas from 'html2canvas'
 
 const loading = ref(false)
@@ -125,6 +126,98 @@ function formatTime(value: string, isTime: boolean) {
 function showContent(value: SafetyNotice) {
   detail.value = value
   contentVisible.value = true
+}
+
+async function printSignature() {
+  const iframe = document.createElement('iframe')
+  iframe.title = '打印安全承诺书'
+  iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;'
+  document.body.appendChild(iframe)
+
+  const printWindow = iframe.contentWindow
+  const printDocument = iframe.contentDocument
+  if (!printWindow || !printDocument) {
+    iframe.remove()
+    return
+  }
+
+  const style = printDocument.createElement('style')
+  style.textContent = `
+    @page { size: A4; margin: 16mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #212121; font-family: Arial, "Microsoft YaHei", sans-serif; }
+    .print-document { position: relative; min-height: 100%; overflow: hidden; }
+    .watermark { position: absolute; inset: 0; z-index: 0; display: grid; grid-template-columns: repeat(3, 1fr); pointer-events: none; }
+    .watermark span { align-self: center; color: rgba(0, 0, 0, .12); font-size: 14px; text-align: center; transform: rotate(-22deg); }
+    .print-content { position: relative; z-index: 1; }
+    .signature-title { margin: 0; padding-top: 24px; text-align: center; }
+    .content-preview { padding: 24px; white-space: pre-wrap; line-height: 1.8; }
+    .signature-footer { display: flex; justify-content: flex-end; padding: 0 24px; }
+    .signature { width: 200px; padding: 48px 0; break-inside: avoid; }
+    .signature-img { display: block; width: 100%; height: auto; }
+    .signature-date { text-align: right; }
+  `
+
+  const title = printDocument.createElement('h1')
+  title.className = 'signature-title'
+  title.textContent = '森林防火安全须知及承诺书'
+
+  const content = printDocument.createElement('div')
+  content.className = 'content-preview'
+  content.textContent = detail.value.content
+
+  const signature = printDocument.createElement('img')
+  signature.className = 'signature-img'
+  signature.alt = '游客手写签名'
+  signature.src = signatureSrc(detail.value.signature)
+
+  const date = printDocument.createElement('div')
+  date.className = 'signature-date'
+  date.textContent = formatTime(detail.value.createdAt, false)
+
+  const signatureBox = printDocument.createElement('div')
+  signatureBox.className = 'signature'
+  signatureBox.append(signature, date)
+
+  const footer = printDocument.createElement('div')
+  footer.className = 'signature-footer'
+  footer.appendChild(signatureBox)
+
+  const printContent = printDocument.createElement('div')
+  printContent.className = 'print-content'
+  printContent.append(title, content, footer)
+
+  const watermark = printDocument.createElement('div')
+  watermark.className = 'watermark'
+  const watermarkText = `${getUserNick(detail.value)} ${formatTime(detail.value.createdAt, true)}`
+  for (let index = 0; index < 18; index += 1) {
+    const item = printDocument.createElement('span')
+    item.textContent = watermarkText
+    watermark.appendChild(item)
+  }
+
+  const printDocumentRoot = printDocument.createElement('main')
+  printDocumentRoot.className = 'print-document'
+  printDocumentRoot.append(watermark, printContent)
+
+  printDocument.title = `${getUserNick(detail.value)}${detail.value.id}安全承诺书`
+  printDocument.head.appendChild(style)
+  printDocument.body.appendChild(printDocumentRoot)
+
+  if (!signature.complete) {
+    await new Promise<void>((resolve) => {
+      signature.addEventListener('load', () => resolve(), { once: true })
+      signature.addEventListener('error', () => resolve(), { once: true })
+    })
+  }
+
+  await new Promise<void>((resolve) => {
+    printWindow.requestAnimationFrame(() => printWindow.requestAnimationFrame(() => resolve()))
+  })
+
+  printWindow.addEventListener('afterprint', () => iframe.remove(), { once: true })
+  printWindow.focus()
+  printWindow.print()
 }
 
 async function exportSignatureFile() {
@@ -265,10 +358,16 @@ onMounted(fetchData)
   }
 }
 
+.tips {
+  font-size: 12px;
+  padding: 12px 0;
+  color: #888;
+}
+
 :deep(.preview-body.el-dialog__body) {
   /* max-height: min(90vh, 200px);
   overflow-y: scroll; */
-  margin-top: 12px;
+  /* margin-top: 12px; */
   background-color: #fff !important;
   color: #212121;
 }
