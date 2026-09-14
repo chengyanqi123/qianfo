@@ -135,16 +135,6 @@ jobs:
           DEPLOY_WEB: ${{ github.event.inputs.app == 'web' || github.event.inputs.app == 'all' }}
           VITE_WX_APP_ID: ${{ secrets.APP_ID }}
           VITE_SITE_ADDRESS: ${{ secrets.H5_SITE }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_URL: ${{ secrets.SENTRY_URL }}
-          VITE_SENTRY_ENVIRONMENT: ${{ secrets.VITE_SENTRY_ENVIRONMENT }}
-          H5_SENTRY_PROJECT: ${{ secrets.H5_SENTRY_PROJECT }}
-          H5_SENTRY_DSN: ${{ secrets.H5_SENTRY_DSN }}
-          WEB_SENTRY_PROJECT: ${{ secrets.WEB_SENTRY_PROJECT }}
-          WEB_SENTRY_DSN: ${{ secrets.WEB_SENTRY_DSN }}
-          H5_SENTRY_RELEASE: ${{ secrets.H5_SENTRY_RELEASE }}
-          WEB_SENTRY_RELEASE: ${{ secrets.WEB_SENTRY_RELEASE }}
 
       - name: Deploy to server
         id: deploy_server

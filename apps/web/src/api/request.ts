@@ -3,7 +3,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useLoading } from '@/composables/useLoading'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import router from '@/router'
-import { captureMonitorException } from '@qianfo/shared'
 
 const { openLoading, closeLoading } = useLoading()
 
@@ -11,43 +10,6 @@ const { openLoading, closeLoading } = useLoading()
 //  1. auth.logout() 立即执行 — 不等用户点确定，第一时间清除 Token，防止后续请求继续带过期 Token
 //  2. 在成功响应中重置标志位 — 用户重新登录后，第一个成功请求会把 isLogoutHandling 重置为 false，下次过期时能正常弹窗
 let isLogoutHandling = false
-
-function summarizePayload(payload: unknown) {
-  if (!payload) return undefined
-  const value =
-    typeof payload === 'string'
-      ? (() => {
-          try {
-            return JSON.parse(payload)
-          } catch {
-            return payload
-          }
-        })()
-      : payload
-  if (Array.isArray(value)) {
-    return { type: 'array', size: value.length }
-  }
-  if (value && typeof value === 'object') {
-    return { type: 'object', keys: Object.keys(value as Record<string, unknown>).slice(0, 20) }
-  }
-  return { type: typeof value }
-}
-
-function reportApiError(error: unknown, responseCode?: number | string, statusCode?: number, config?: any) {
-  captureMonitorException(error, {
-    tags: {
-      source: 'api',
-      method: String(config?.method || 'get').toUpperCase(),
-    },
-    extra: {
-      responseCode,
-      statusCode,
-      url: config?.url,
-      params: summarizePayload(config?.params),
-      data: summarizePayload(config?.data),
-    },
-  })
-}
 
 export const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -71,7 +33,6 @@ request.interceptors.response.use(
     isLogoutHandling = false
     const res = response.data
     if (res.code !== 0) {
-      reportApiError(new Error(res.message || '请求失败'), res.code, response.status, response.config)
       ElMessage.error(res.message || '请求失败')
       return Promise.reject(new Error(res.message || '请求失败'))
     }
@@ -84,12 +45,6 @@ request.interceptors.response.use(
     }
     const message = error.response?.data?.message || error.message || '网络错误'
     if (error?.status === 401 || error.response?.status === 401 || error.response?.data?.code === 401) {
-      reportApiError(
-        error,
-        error.response?.data?.code || 401,
-        error.response?.status || error.status || 401,
-        error.config,
-      )
       if (!isLogoutHandling) {
         isLogoutHandling = true
         const auth = useAuthStore()
@@ -103,7 +58,6 @@ request.interceptors.response.use(
       }
       return Promise.reject(new Error('登录已过期，请重新登录'))
     }
-    reportApiError(error, error.response?.data?.code, error.response?.status, error.config)
     ElMessage.error(message)
     return Promise.reject(new Error(message))
   },

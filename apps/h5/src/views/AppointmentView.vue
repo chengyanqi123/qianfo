@@ -117,10 +117,9 @@
 import { onMounted, ref, toRaw } from 'vue'
 import { showSuccessToast, showFailToast, type FormInstance, type PickerOption } from 'vant'
 import { submitAppointment } from '@/api/appointment'
-import { trackMonitorEvent, type CreateAppointmentDto } from '@qianfo/shared'
+import type { CreateAppointmentDto } from '@qianfo/shared'
 import dayjs from 'dayjs'
 import { getDefaultLimit, getReserveByDate } from '@/api/setting'
-import { trackUmengEvent } from '@/analytics/umeng'
 import { useAppointmentHistory } from '@/hooks/useAppointmentHistory'
 defineOptions({ name: 'AppointmentView' })
 
@@ -320,71 +319,16 @@ function autoFill(field: 'name' | 'phone') {
 
 // 提交和重置
 async function onSubmit() {
-  const payload: CreateAppointmentDto = toRaw(form.value)
-  const daysAhead = Math.max(dayjs(payload.date).diff(dayjs(), 'day'), 0)
   submitting.value = true
   try {
-    await submitAppointment(payload)
-    trackMonitorEvent('appointment_submit', {
-      attributes: {
-        result: 'success',
-        count: payload.count,
-        use_vehicle: payload.useVehicle,
-        need_guide: payload.needGuide,
-        has_remark: Boolean(payload.remark),
-        days_ahead: daysAhead,
-      },
-      data: {
-        name: payload.name,
-        date: payload.date,
-        time: payload.time,
-      },
-    })
-    trackUmengEvent('appointment_submit', {
-      result: 'success',
-      count: payload.count,
-      use_vehicle: payload.useVehicle,
-      need_guide: payload.needGuide,
-      has_remark: Boolean(payload.remark),
-      days_ahead: daysAhead,
-      name: payload.name,
-      date: payload.date,
-      time: payload.time,
-    })
-
+    await submitAppointment(toRaw(form.value))
     showSuccessToast('预约成功！')
     addHistory(form.value.name, form.value.phone)
 
     resetForm()
     await init()
-  } catch (error: any) {
-    trackMonitorEvent('appointment_submit', {
-      attributes: {
-        result: 'failure',
-        count: payload.count,
-        use_vehicle: payload.useVehicle,
-        need_guide: payload.needGuide,
-        has_remark: Boolean(payload.remark),
-      },
-      data: {
-        name: payload.name,
-        date: payload.date,
-        time: payload.time,
-        reason: error?.message || 'unknown',
-      },
-    })
-    trackUmengEvent('appointment_submit', {
-      result: 'failure',
-      count: payload.count,
-      use_vehicle: payload.useVehicle,
-      need_guide: payload.needGuide,
-      has_remark: Boolean(payload.remark),
-      days_ahead: daysAhead,
-      name: payload.name,
-      date: payload.date,
-      time: payload.time,
-      reason: error?.message || 'unknown',
-    })
+  } catch {
+    // 错误由请求拦截器提示
   } finally {
     submitting.value = false
   }

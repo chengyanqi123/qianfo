@@ -16,7 +16,6 @@
 import { ElMessage } from 'element-plus';
 import { Html5Qrcode } from 'html5-qrcode';
 import { appointmentsWriteOff } from '@/api/appointment';
-import { trackMonitorEvent } from '@qianfo/shared';
 
 const visible = defineModel<boolean>({ required: true });
 let scanner: Html5Qrcode | null = null;
@@ -35,29 +34,7 @@ async function startScan() {
         }
         appointmentsWriteOff(data.id)
           .then(() => {
-            trackMonitorEvent('appointment_writeoff', {
-              attributes: {
-                result: 'success',
-              },
-              data: {
-                appointment_id: data.id,
-                date: data.date,
-                time: data.time,
-              },
-            });
             ElMessage.success('操作成功!');
-          })
-          .catch((error: any) => {
-            trackMonitorEvent('appointment_writeoff', {
-              attributes: {
-                result: 'failure',
-              },
-              data: {
-                appointment_id: data.id,
-                reason: error?.message || 'unknown',
-              },
-            });
-            throw error;
           })
           .finally(() => {
             visible.value = false;

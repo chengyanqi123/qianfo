@@ -92,9 +92,8 @@ export default { name: 'HistoryView' }
 import { ref, onMounted } from 'vue'
 import { showSuccessToast, showConfirmDialog } from 'vant'
 import { getAppointmentHistory, cancelAppointment, getAppointmentStatus } from '@/api/appointment'
-import { trackMonitorEvent, type Appointment, type AppointmentStatus } from '@qianfo/shared'
+import type { Appointment, AppointmentStatus } from '@qianfo/shared'
 import QRCode from 'qrcode'
-import { trackUmengEvent } from '@/analytics/umeng'
 import dayjs from 'dayjs'
 
 const list = ref<Appointment[]>([])
@@ -171,47 +170,11 @@ async function showQrCode(item: Appointment) {
   qrDataUrl.value = await QRCode.toDataURL(content, { width: 250, margin: 2 })
   qrId.value = item.id
   qrVisible.value = true
-  trackMonitorEvent('appointment_qrcode_open', {
-    attributes: {
-      appointment_count: item.count,
-      status: item.status,
-    },
-    data: {
-      appointment_id: item.id,
-      date: item.date,
-      time: item.time,
-    },
-  })
-  trackUmengEvent('appointment_qrcode_open', {
-    appointment_count: item.count,
-    status: item.status,
-    appointment_id: item.id,
-    date: item.date,
-    time: item.time,
-  })
   loopId = setInterval(() => {
     getAppointmentStatus(item.id).then((status) => {
       if (status === 'confirmed') {
         const target = list.value.find((i) => i.id === qrId.value)
         if (target) target.status = 'confirmed'
-        trackMonitorEvent('appointment_writeoff_confirmed', {
-          attributes: {
-            result: 'success',
-            appointment_count: item.count,
-          },
-          data: {
-            appointment_id: item.id,
-            date: item.date,
-            time: item.time,
-          },
-        })
-        trackUmengEvent('appointment_writeoff_confirmed', {
-          result: 'success',
-          appointment_count: item.count,
-          appointment_id: item.id,
-          date: item.date,
-          time: item.time,
-        })
         resetQr()
         showSuccessToast('核销成功')
       }
@@ -244,42 +207,8 @@ async function onCancel(item: Appointment) {
   try {
     await cancelAppointment(item.id)
     item.status = 'cancelled'
-    trackMonitorEvent('appointment_cancel', {
-      attributes: {
-        result: 'success',
-        appointment_count: item.count,
-      },
-      data: {
-        appointment_id: item.id,
-        date: item.date,
-        time: item.time,
-      },
-    })
-    trackUmengEvent('appointment_cancel', {
-      result: 'success',
-      appointment_count: item.count,
-      appointment_id: item.id,
-      date: item.date,
-      time: item.time,
-    })
     showSuccessToast('预约已取消')
-  } catch (e: any) {
-    trackMonitorEvent('appointment_cancel', {
-      attributes: {
-        result: 'failure',
-        appointment_count: item.count,
-      },
-      data: {
-        appointment_id: item.id,
-        reason: e?.message || 'unknown',
-      },
-    })
-    trackUmengEvent('appointment_cancel', {
-      result: 'failure',
-      appointment_count: item.count,
-      appointment_id: item.id,
-      reason: e?.message || 'unknown',
-    })
+  } catch {
     // showFailToast(e.message || '取消失败，请重试');
   } finally {
     cancellingId.value = null

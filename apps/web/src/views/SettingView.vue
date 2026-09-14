@@ -137,7 +137,6 @@ import * as Apis from '@/api/setting';
 import { useIsMobile } from '@/composables/useIsMobile';
 import { dayjs, type CalendarDateType, type CalendarInstance } from 'element-plus';
 import { debounce } from 'lodash-es';
-import { trackMonitorEvent } from '@qianfo/shared';
 
 const { isMobile } = useIsMobile();
 const calendar = ref<CalendarInstance>();
@@ -188,27 +187,9 @@ const form = ref({
 });
 
 const limitChange: any = debounce(function (value: number) {
-  Apis.setDefaultLimit({ capacity: value })
-    .then(() => {
-      trackMonitorEvent('capacity_default_update', {
-        attributes: {
-          result: 'success',
-          capacity: value,
-        },
-      });
-      getReserve();
-    })
-    .catch((error: any) => {
-      trackMonitorEvent('capacity_default_update', {
-        attributes: {
-          result: 'failure',
-          capacity: value,
-        },
-        data: {
-          reason: error?.message || 'unknown',
-        },
-      });
-    });
+  Apis.setDefaultLimit({ capacity: value }).then(() => {
+    getReserve();
+  });
 }, 300);
 
 const getReserve = debounce(function (options?: Parameters<typeof Apis.getLimitByDate>[1]) {
@@ -282,27 +263,7 @@ function submitDaliyLimit() {
       current.limit = form.value.limit;
       current.remaining = form.value.limit === -1 ? -1 : form.value.limit - current.confirmed;
       daliys.value[form.value.date] = current;
-      trackMonitorEvent('capacity_daily_update', {
-        attributes: {
-          result: 'success',
-          capacity: form.value.limit,
-        },
-        data: {
-          date: form.value.date,
-        },
-      });
       dialogFormVisible.value = false;
-    }).catch((error: any) => {
-      trackMonitorEvent('capacity_daily_update', {
-        attributes: {
-          result: 'failure',
-          capacity: form.value.limit,
-        },
-        data: {
-          date: form.value.date,
-          reason: error?.message || 'unknown',
-        },
-      });
     });
   });
 }
