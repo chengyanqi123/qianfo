@@ -42,22 +42,6 @@
               <el-input v-model="filter.name" placeholder="搜索预约人姓名" clearable style="width: 100%" />
             </el-form-item>
           </el-col>
-          <el-col :xs="12" :sm="12" :md="6">
-            <el-form-item label="需导赏员">
-              <el-select v-model="filter.needGuide" clearable style="width: 100%">
-                <el-option label="是" :value="true" />
-                <el-option label="否" :value="false" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :xs="12" :sm="12" :md="6">
-            <el-form-item label="需用车">
-              <el-select v-model="filter.useVehicle" clearable style="width: 100%">
-                <el-option label="是" :value="true" />
-                <el-option label="否" :value="false" />
-              </el-select>
-            </el-form-item>
-          </el-col>
         </el-row>
         <el-row :gutter="12">
           <el-col :xs="24" :sm="24" :md="24">
@@ -96,16 +80,6 @@
           </el-table-column>
           <el-table-column prop="count" label="人数" width="70" align="center" />
           <el-table-column prop="name" label="姓名" width="120" align="center" />
-          <el-table-column prop="needGuide" label="需导赏员" width="100" align="center">
-            <template #default="{ row }">
-              <el-checkbox :model-value="row.needGuide" disabled size="large" />
-            </template>
-          </el-table-column>
-          <el-table-column prop="useVehicle" label="需用车" width="80" align="center">
-            <template #default="{ row }">
-              <el-checkbox :model-value="row.useVehicle" disabled size="large" />
-            </template>
-          </el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-tag :type="statusTagType(row.status)" size="small">
@@ -212,8 +186,6 @@ const filter = reactive({
   phone: '',
   status: '' as AppointmentStatus | '',
   name: undefined,
-  needGuide: undefined,
-  useVehicle: undefined,
   dateStart: '',
   dateEnd: '',
 })
@@ -261,8 +233,6 @@ function onReset() {
   filter.phone = ''
   filter.status = ''
   filter.name = undefined
-  filter.needGuide = undefined
-  filter.useVehicle = undefined
   dateRange.value = null
   filter.page = 1
   fetchData()

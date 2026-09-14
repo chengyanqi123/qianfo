@@ -66,26 +66,6 @@
             </template>
           </van-field>
 
-          <!-- 是否需要用车 -->
-          <van-field name="useVehicle" label="需要用车" :rules="booleanFieldRules('请选择是否需要用车')">
-            <template #input>
-              <van-radio-group v-model="form.useVehicle" direction="horizontal">
-                <van-radio :name="true">是</van-radio>
-                <van-radio :name="false">否</van-radio>
-              </van-radio-group>
-            </template>
-          </van-field>
-
-          <!-- 是否需要导赏员 -->
-          <van-field name="needGuide" label="需要导赏员" :rules="booleanFieldRules('请选择是否需要导赏员')">
-            <template #input>
-              <van-radio-group v-model="form.needGuide" direction="horizontal">
-                <van-radio :name="true">是</van-radio>
-                <van-radio :name="false">否</van-radio>
-              </van-radio-group>
-            </template>
-          </van-field>
-
           <!-- 备注 -->
           <van-field
             v-model="form.remark"
@@ -144,11 +124,6 @@ import { trackUmengEvent } from '@/analytics/umeng'
 import { useAppointmentHistory } from '@/hooks/useAppointmentHistory'
 defineOptions({ name: 'AppointmentView' })
 
-type AppointmentForm = Omit<CreateAppointmentDto, 'useVehicle' | 'needGuide'> & {
-  useVehicle: boolean | null
-  needGuide: boolean | null
-}
-
 const formRef = ref<FormInstance>()
 const showDatePicker = ref(false)
 const showTimePicker = ref(false)
@@ -161,19 +136,13 @@ const { getHistory, addHistory } = useAppointmentHistory()
 const dateAllowRange = [new Date(), dayjs().add(1, 'month').toDate()] // 1个月内
 const timeAllowRange = ['07:00', '19:00']
 const timePickerValue = ref<string[]>(['09', '00'])
-const booleanFieldRules = (message: string) => [
-  {
-    validator: (value: boolean | null | undefined) => value !== null && value !== undefined,
-    message,
-  },
-]
-const defaultForm: AppointmentForm = {
+const defaultForm: CreateAppointmentDto = {
   date: '',
   time: '',
   count: 1,
   name: '',
-  useVehicle: null,
-  needGuide: null,
+  useVehicle: false,
+  needGuide: false,
   phone: '',
   remark: '',
 }
@@ -351,16 +320,7 @@ function autoFill(field: 'name' | 'phone') {
 
 // 提交和重置
 async function onSubmit() {
-  if (form.value.useVehicle === null || form.value.needGuide === null) {
-    showFailToast('请选择是否需要用车和导赏员')
-    return
-  }
-
-  const payload: CreateAppointmentDto = {
-    ...toRaw(form.value),
-    useVehicle: form.value.useVehicle as boolean,
-    needGuide: form.value.needGuide as boolean,
-  }
+  const payload: CreateAppointmentDto = toRaw(form.value)
   const daysAhead = Math.max(dayjs(payload.date).diff(dayjs(), 'day'), 0)
   submitting.value = true
   try {

@@ -30,14 +30,6 @@
                 <span>预约人数：{{ item.count }} 人</span>
               </div>
               <div class="info-row">
-                <van-icon name="guide-o" />
-                <span>需要用车：{{ item.useVehicle ? '是' : '否' }}</span>
-              </div>
-              <div class="info-row">
-                <van-icon name="flag-o" />
-                <span>需要导赏员：{{ item.needGuide ? '是' : '否' }}</span>
-              </div>
-              <div class="info-row">
                 <van-icon name="phone-o" />
                 <span>联系电话：{{ item.phone }}</span>
               </div>
