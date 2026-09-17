@@ -38,7 +38,7 @@
           />
         </el-space>
       </div>
-      <el-calendar class="calendar" ref="calendar" v-model="focusDate">
+      <el-calendar class="calendar" ref="calendar" v-model="focusDate" @click.capture="preventPastDateClick">
         <template #header="{ date }">
           <div class="calendar-header">
             <span>{{ date }}</span>
@@ -64,6 +64,7 @@
         <template #date-cell="{ data }">
           <div
             class="calendar-cell"
+            :class="{ 'is-disabled': isPastDate(data.day) }"
             @click="
               calendarCellClickHandler({
                 day: data?.day,
@@ -142,7 +143,9 @@ const { isMobile } = useIsMobile();
 const calendar = ref<CalendarInstance>();
 const selectDate = (val: CalendarDateType) => {
   if (!calendar.value) return;
+  const currentMonth = dayjs(focusDate.value).format('YYYY-MM');
   calendar.value.selectDate(val);
+  if (val === 'today' && currentMonth === dayjs().format('YYYY-MM')) getReserve();
 };
 
 const tipTextMap = {
@@ -209,11 +212,8 @@ const getReserve = debounce(function (options?: Parameters<typeof Apis.getLimitB
 
 getDefaultLimit();
 watch(
-  () => focusDate.value,
+  () => dayjs(focusDate.value).format('YYYY-MM'),
   () => {
-    if (dayjs(focusDate.value).format('YYYY-MM-DD') === form.value.date) {
-      return;
-    }
     const controller = new AbortController();
     getReserve({ signal: controller.signal });
     onWatcherCleanup(() => {
@@ -237,7 +237,7 @@ function calendarCellClickHandler(data: any) {
     return;
   }
   // 今天之前的日期也不弹窗
-  if (dayjs(data.day).isBefore(dayjs().startOf('day'))) {
+  if (isPastDate(data.day)) {
     return;
   }
   const { day, limit } = data;
@@ -247,6 +247,15 @@ function calendarCellClickHandler(data: any) {
     limit: isNaN(Number(limit)) ? setting.value.totalLimit : Number(limit),
   };
   dialogFormVisible.value = true;
+}
+
+function isPastDate(day: string) {
+  return dayjs(day).isBefore(dayjs().startOf('day'));
+}
+
+function preventPastDateClick(event: MouseEvent) {
+  const cell = (event.target as HTMLElement).closest('td');
+  if (cell?.querySelector('.calendar-cell.is-disabled')) event.stopPropagation();
 }
 
 function submitDaliyLimit() {
@@ -309,6 +318,11 @@ function submitDaliyLimit() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+.calendar-cell.is-disabled {
+  color: var(--el-text-color-placeholder);
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .day-number {
   text-align: center;
