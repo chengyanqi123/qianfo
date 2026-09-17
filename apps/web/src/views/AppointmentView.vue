@@ -36,24 +36,10 @@
           </el-col>
         </el-row>
 
-        <el-row v-show="filterExpanded" :gutter="12">
-          <el-col :xs="12" :sm="12" :md="6">
-            <el-form-item label="姓名">
-              <el-input v-model="filter.name" placeholder="搜索预约人姓名" clearable style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
         <el-row :gutter="12">
           <el-col :xs="24" :sm="24" :md="24">
             <el-form-item>
               <div class="filter-actions">
-                <el-button link :class="{ 'toggle-btn': isMobile }" @click="filterExpanded = !filterExpanded">
-                  {{ filterExpanded ? '收起筛选' : '展开筛选' }}
-                  <el-icon class="toggle-icon">
-                    <ArrowUp v-if="filterExpanded" />
-                    <ArrowDown v-else />
-                  </el-icon>
-                </el-button>
                 <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
                 <el-button :icon="Refresh" @click="onReset">重置</el-button>
               </div>
@@ -73,13 +59,23 @@
               <a :href="`tel:${row.phone}`" class="phone-link">{{ row.phone }}</a>
             </template>
           </el-table-column>
+          <el-table-column label="预约人" width="120" align="center">
+            <template #default="{ row }">{{ row.persons?.[0]?.name || '—' }}</template>
+          </el-table-column>
+          <el-table-column prop="count" label="人数" width="70" align="center" />
+          <el-table-column label="预约人员" min-width="150" align="center">
+            <template #default="{ row }">
+              <el-button v-if="row.persons?.length" link type="primary" @click="showPersons(row.persons)">
+                查看 {{ row.persons.length }} 人
+              </el-button>
+              <span v-else>—</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="date" label="预约日期" width="180">
             <template #default="{ row }">
               {{ row.date + ' ' + row.time }}
             </template>
           </el-table-column>
-          <el-table-column prop="count" label="人数" width="70" align="center" />
-          <el-table-column prop="name" label="姓名" width="120" align="center" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-tag :type="statusTagType(row.status)" size="small">
@@ -162,21 +158,32 @@
         />
       </div>
     </el-card>
+    <el-dialog v-model="personsDialogVisible" title="预约人员" width="min(90vw, 560px)">
+      <el-table :data="selectedPersons" border>
+        <el-table-column prop="name" label="姓名" min-width="100" />
+        <el-table-column prop="idCard" label="身份证号" min-width="190" />
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
+import { Search, Refresh } from '@element-plus/icons-vue'
 import { getAppointments, updateAppointmentStatus } from '@/api/appointment'
-import type { Appointment, AppointmentStatus } from '@qianfo/shared'
+import type { Appointment, AppointmentPerson, AppointmentStatus } from '@qianfo/shared'
 import { useIsMobile } from '@/composables/useIsMobile'
 
 const { isMobile } = useIsMobile()
-const filterExpanded = ref(false)
 const loading = ref(false)
 const tableData = ref<Appointment[]>([])
+const selectedPersons = ref<AppointmentPerson[]>([])
+const personsDialogVisible = ref(false)
+function showPersons(persons: AppointmentPerson[]) {
+  selectedPersons.value = persons
+  personsDialogVisible.value = true
+}
 const total = ref(0)
 const dateRange = ref<[string, string] | null>(null)
 
@@ -185,7 +192,6 @@ const filter = reactive({
   pageSize: 10,
   phone: '',
   status: '' as AppointmentStatus | '',
-  name: undefined,
   dateStart: '',
   dateEnd: '',
 })
@@ -232,7 +238,6 @@ function onSearch() {
 function onReset() {
   filter.phone = ''
   filter.status = ''
-  filter.name = undefined
   dateRange.value = null
   filter.page = 1
   fetchData()
@@ -281,14 +286,6 @@ onMounted(fetchData)
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-
-.toggle-btn {
-  margin-right: auto;
-}
-
-.toggle-icon {
-  margin-left: 4px;
 }
 
 /* 表格横向滚动容器 */

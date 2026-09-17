@@ -23,11 +23,19 @@
             <div class="card-body">
               <div class="info-row">
                 <van-icon name="contact-o" />
-                <span>预约人：{{ item.name }}</span>
+                <span
+                  >预约人：{{ item.persons?.[0]?.name || '—' }}（{{
+                    maskIdCard(item.persons?.[0]?.idCard || '')
+                  }}）</span
+                >
               </div>
               <div class="info-row">
                 <van-icon name="friends-o" />
                 <span>预约人数：{{ item.count }} 人</span>
+              </div>
+              <div v-for="(person, index) in item.persons?.slice(1) || []" :key="index" class="info-row">
+                <van-icon name="idcard" />
+                <span>同行人员 {{ index + 1 }}：{{ person.name }}（{{ maskIdCard(person.idCard) }}）</span>
               </div>
               <div class="info-row">
                 <van-icon name="phone-o" />
@@ -128,6 +136,10 @@ const statusTagType = (status: AppointmentStatus): 'warning' | 'success' | 'dang
 function formatTime(str: string) {
   const d = new Date(str)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function maskIdCard(idCard: string) {
+  return idCard.length > 8 ? `${idCard.slice(0, 4)}**********${idCard.slice(-4)}` : '********'
 }
 
 async function fetchList(reset = false) {

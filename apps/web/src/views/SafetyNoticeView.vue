@@ -57,7 +57,7 @@
           color: 'rgba(0, 0, 0, .15)',
         }"
       >
-        <h3 class="signature-title">森林防火安全须知及承诺书</h3>
+        <h3 class="signature-title">安全承诺及告知书</h3>
         <div class="content-preview">{{ detail.content }}</div>
         <div class="signature-footer">
           <div class="signature">

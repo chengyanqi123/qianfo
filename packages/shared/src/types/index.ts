@@ -2,13 +2,18 @@
 
 export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled'
 
+export interface AppointmentPerson {
+  name: string
+  idCard: string
+}
+
 export interface Appointment {
   id: number
   userId: number
   date: string // 'YYYY-MM-DD'
   time: string // 'HH:mm'
   count: number // 人数
-  name: string // 预约人姓名
+  persons: AppointmentPerson[] // 第一人为预约人本人
   useVehicle: boolean // 是否需要用车
   needGuide: boolean // 是否需要导赏员
   phone: string
@@ -21,7 +26,7 @@ export interface CreateAppointmentDto {
   date: string
   time: string
   count: number
-  name: string // 预约人姓名
+  persons: AppointmentPerson[] // 数量与 count 一致，第一人为预约人本人
   useVehicle: boolean // 是否需要用车
   needGuide: boolean // 是否需要导赏员
   phone: string

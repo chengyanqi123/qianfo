@@ -29,17 +29,6 @@
             @click="showTimePicker = true"
           />
 
-          <!-- 预约人姓名 -->
-          <van-field
-            v-model="form.name"
-            name="name"
-            label="预约人"
-            placeholder="请输入预约人姓名"
-            clearable
-            :rules="[{ required: true, message: '请填写预约人姓名' }]"
-            @blur="autoFill('name')"
-          />
-
           <!-- 联系电话 -->
           <van-field
             v-model="form.phone"
@@ -59,12 +48,38 @@
           </template> -->
           </van-field>
 
-          <!-- 人数 -->
+          <!-- 人数与预约人员 -->
           <van-field name="count" label="预约人数" :rules="[{ required: true }]">
             <template #input>
-              <van-stepper v-model="form.count" min="1" max="10" />
+              <van-stepper v-model="form.count" min="1" max="7" />
             </template>
           </van-field>
+
+          <div v-for="(person, index) in form.persons" :key="index" class="person-section">
+            <div class="person-title">{{ index === 0 ? '预约人本人' : `同行人员 ${index}` }}</div>
+            <van-field
+              v-model="person.name"
+              :name="`person-name-${index}`"
+              label="姓名"
+              placeholder="请输入姓名"
+              maxlength="64"
+              clearable
+              :rules="[{ required: true, message: '请填写姓名' }]"
+              @blur="index === 0 && autoFill('name')"
+            />
+            <van-field
+              v-model="person.idCard"
+              :name="`person-id-card-${index}`"
+              label="身份证号"
+              placeholder="请输入身份证号"
+              maxlength="18"
+              clearable
+              :rules="[
+                { required: true, message: '请填写身份证号' },
+                { pattern: /^\d{17}[\dXx]$/, message: '请填写正确的18位身份证号' },
+              ]"
+            />
+          </div>
 
           <!-- 备注 -->
           <van-field
@@ -114,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, toRaw } from 'vue'
+import { onMounted, ref, toRaw, watch } from 'vue'
 import { showSuccessToast, showFailToast, type FormInstance, type PickerOption } from 'vant'
 import { submitAppointment } from '@/api/appointment'
 import type { CreateAppointmentDto } from '@qianfo/shared'
@@ -139,13 +154,21 @@ const defaultForm: CreateAppointmentDto = {
   date: '',
   time: '',
   count: 1,
-  name: '',
+  persons: [{ name: '', idCard: '' }],
   useVehicle: false,
   needGuide: false,
   phone: '',
   remark: '',
 }
-const form = ref({ ...defaultForm })
+const form = ref<CreateAppointmentDto>({ ...defaultForm, persons: [{ name: '', idCard: '' }] })
+watch(
+  () => form.value.count,
+  (count) => {
+    const persons = form.value.persons
+    while (persons.length < count) persons.push({ name: '', idCard: '' })
+    if (persons.length > count) persons.splice(count)
+  },
+)
 const setting = ref({
   totalLimit: -1,
 })
@@ -305,14 +328,14 @@ function timeFilter(type: string, options: PickerOption[]) {
 function autoFill(field: 'name' | 'phone') {
   if (field === 'name') {
     if (form.value.phone) return
-    const phone = getHistory(form.value.name)
+    const phone = getHistory(form.value.persons[0].name)
     phone && (form.value.phone = phone)
     return
   }
   if (field === 'phone') {
-    if (form.value.name) return
+    if (form.value.persons[0].name) return
     const name = getHistory(form.value.phone)
-    name && (form.value.name = name)
+    name && (form.value.persons[0].name = name)
     return
   }
 }
@@ -323,7 +346,7 @@ async function onSubmit() {
   try {
     await submitAppointment(toRaw(form.value))
     showSuccessToast('预约成功！')
-    addHistory(form.value.name, form.value.phone)
+    addHistory(form.value.persons[0].name, form.value.phone)
 
     resetForm()
     await init()
@@ -335,7 +358,7 @@ async function onSubmit() {
 }
 function resetForm() {
   formRef.value?.resetValidation()
-  form.value = { ...defaultForm }
+  form.value = { ...defaultForm, persons: [{ name: '', idCard: '' }] }
 }
 </script>
 
@@ -351,6 +374,13 @@ function resetForm() {
   overflow: hidden;
   background: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.person-title {
+  padding: 14px 16px 8px;
+  color: #323233;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .submit-btn {
