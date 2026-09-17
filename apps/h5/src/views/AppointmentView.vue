@@ -147,7 +147,7 @@ const submitting = ref(false)
 //
 const { getHistory, addHistory } = useAppointmentHistory()
 //
-const dateAllowRange = [new Date(), dayjs().add(1, 'month').toDate()] // 1个月内
+const dateAllowRange = [new Date(), dayjs().add(7, 'day').toDate()] // 1个月内
 const timeAllowRange = ['07:00', '22:00']
 const timePickerValue = ref<string[]>(['07', '00'])
 const defaultForm: CreateAppointmentDto = {
