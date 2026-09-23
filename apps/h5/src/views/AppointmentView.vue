@@ -16,7 +16,6 @@
             :rules="[{ required: true, message: '请选择预约日期' }]"
             @click="showDatePicker = true"
           />
-
           <!-- 预约时间 -->
           <van-field
             v-model="form.time"
@@ -28,7 +27,6 @@
             :rules="[{ required: true, message: '请选择预约时间' }]"
             @click="showTimePicker = true"
           />
-
           <!-- 联系电话 -->
           <van-field
             v-model="form.phone"
@@ -43,18 +41,33 @@
             ]"
             @blur="autoFill('phone')"
           >
-            <!-- <template #button>
+          <!-- <template #button>
             <van-button size="small" type="primary" plain @click="handleSendCode"> 发送验证码 </van-button>
           </template> -->
           </van-field>
-
           <!-- 人数与预约人员 -->
           <van-field name="count" label="预约人数" :rules="[{ required: true }]">
             <template #input>
               <van-stepper v-model="form.count" min="1" max="7" />
             </template>
           </van-field>
+          <!-- 备注 -->
+          <van-field
+            v-model="form.remark"
+            name="remark"
+            label="备注"
+            type="textarea"
+            rows="2"
+            autosize
+            placeholder="选填，如特殊需求"
+            maxlength="100"
+            show-word-limit
+            :rules="[
+              { required: false, message: '备注不能超过80字', validator: (value: string) => value.length <= 80 },
+            ]"
+          />
 
+          <!-- 同行人员 -->
           <div v-for="(person, index) in form.persons" :key="index" class="person-section">
             <div class="person-title">{{ index === 0 ? '预约人本人' : `同行人员 ${index}` }}</div>
             <van-field
@@ -81,24 +94,29 @@
             />
           </div>
 
-          <!-- 备注 -->
-          <van-field
-            v-model="form.remark"
-            name="remark"
-            label="备注"
-            type="textarea"
-            rows="2"
-            autosize
-            placeholder="选填，如特殊需求"
-            maxlength="100"
-            show-word-limit
-            :rules="[
-              { required: false, message: '备注不能超过80字', validator: (value: string) => value.length <= 80 },
-            ]"
-          />
-
+          <!-- 协议阅读 -->
           <div class="submit-btn">
-            <van-button round block type="primary" native-type="submit" :loading="submitting"> 提交预约 </van-button>
+            <van-checkbox
+              class="agreement-checkbox"
+              shape="square"
+              icon-size="14px"
+              :model-value="agreementSigned"
+              @update:model-value="onAgreementChange"
+            >
+              <span>我已阅读</span>
+              <span style="color: var(--van-primary-color)">《安全承诺及告知书》</span>
+              <span>并签字</span>
+            </van-checkbox>
+            <van-button
+              round
+              block
+              type="primary"
+              native-type="submit"
+              :loading="submitting"
+              :disabled="!agreementSigned || submitting"
+            >
+              提交预约
+            </van-button>
           </div>
         </van-form>
       </div>
@@ -125,17 +143,20 @@
         @cancel="showTimePicker = false"
       />
     </van-popup>
+
+    <SafetyNoticeDialog v-model:visible="safetyNoticeVisible" @signed="onAgreementSigned" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, toRaw, watch } from 'vue'
+import { onMounted, ref, shallowRef, toRaw, watch } from 'vue'
 import { showSuccessToast, showFailToast, type FormInstance, type PickerOption } from 'vant'
 import { submitAppointment } from '@/api/appointment'
 import type { CreateAppointmentDto } from '@qianfo/shared'
 import dayjs from 'dayjs'
 import { getDefaultLimit, getReserveByDate } from '@/api/setting'
 import { useAppointmentHistory } from '@/hooks/useAppointmentHistory'
+import SafetyNoticeDialog from '@/components/SafetyNoticeDialog.vue'
 defineOptions({ name: 'AppointmentView' })
 
 const formRef = ref<FormInstance>()
@@ -144,6 +165,8 @@ const showTimePicker = ref(false)
 const inited = ref(false)
 const refreshing = ref(false)
 const submitting = ref(false)
+const agreementSigned = shallowRef(false)
+const safetyNoticeVisible = shallowRef(false)
 //
 const { getHistory, addHistory } = useAppointmentHistory()
 //
@@ -342,6 +365,11 @@ function autoFill(field: 'name' | 'phone') {
 
 // 提交和重置
 async function onSubmit() {
+  if (!agreementSigned.value) {
+    showFailToast('请先阅读协议并完成签字')
+    return
+  }
+
   submitting.value = true
   try {
     await submitAppointment(toRaw(form.value))
@@ -359,6 +387,19 @@ async function onSubmit() {
 function resetForm() {
   formRef.value?.resetValidation()
   form.value = { ...defaultForm, persons: [{ name: '', idCard: '' }] }
+  agreementSigned.value = false
+}
+
+function onAgreementChange(checked: boolean) {
+  if (checked) {
+    safetyNoticeVisible.value = true
+    return
+  }
+  agreementSigned.value = false
+}
+
+function onAgreementSigned() {
+  agreementSigned.value = true
 }
 </script>
 
@@ -385,6 +426,12 @@ function resetForm() {
 
 .submit-btn {
   padding: 16px;
+}
+
+.agreement-checkbox {
+  margin-bottom: 12px;
+  font-size: 13.5px;
+  --van-checkbox-label-margin: 6px;
 }
 
 .loading-wrapper {

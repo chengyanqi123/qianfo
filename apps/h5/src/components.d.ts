@@ -13,6 +13,7 @@ declare module 'vue' {
     SignaturePad: typeof import('./components/SignaturePad.vue')['default']
     VanButton: typeof import('vant/es')['Button']
     VanCalendar: typeof import('vant/es')['Calendar']
+    VanCheckbox: typeof import('vant/es')['Checkbox']
     VanDivider: typeof import('vant/es')['Divider']
     VanEmpty: typeof import('vant/es')['Empty']
     VanField: typeof import('vant/es')['Field']

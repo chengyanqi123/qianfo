@@ -13,6 +13,9 @@ const submitting = shallowRef(false)
 const canSubmit = computed(() => Boolean(signatureResult.value?.svg) && !submitting.value)
 const noticeLines = SAFETY_NOTICE_CONTENT.split('\n')
 const noticeTitle = noticeLines[0]
+const emit = defineEmits<{
+  signed: []
+}>()
 
 function openSignature() {
   signatureDialogVisible.value = true
@@ -31,16 +34,29 @@ async function onSubmit() {
   submitting.value = true
   try {
     await submitSafetyNotice({ content: SAFETY_NOTICE_CONTENT, signature: signatureResult.value.svg })
+    emit('signed')
     visible.value = false
-    signatureResult.value = null
   } finally {
     submitting.value = false
   }
 }
+
+function resetSignature() {
+  signatureDialogVisible.value = false
+  signatureResult.value = null
+}
 </script>
 
 <template>
-  <van-popup v-model:show="visible" position="bottom" round :close-on-click-overlay="false" :style="{ height: '88%' }">
+  <van-popup
+    v-model:show="visible"
+    position="bottom"
+    round
+    closeable
+    :close-on-click-overlay="false"
+    :style="{ height: '88%' }"
+    @closed="resetSignature"
+  >
     <div class="safety-dialog">
       <div class="safety-header">
         <h2>安全承诺及告知书</h2>

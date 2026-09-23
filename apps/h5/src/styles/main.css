@@ -13,5 +13,5 @@ body,
 }
 
 .page-container {
-  padding: 16px 16px 70px; /* 顶部不加 padding，留出 tabbar 高度 */
+  padding: 12px 12px 70px; /* 顶部不加 padding，留出 tabbar 高度 */
 }
